@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sales Efficiency Dashboard v5</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --green:#53a318;--green-l:#e8f5d9;--green-d:#3d7a12;
+  --red:#dc2626;--red-l:#fef2f2;
+  --yellow:#f59e0b;--yellow-l:#fffbeb;
+  --blue:#2563eb;--blue-l:#eff6ff;
+  --purple:#7c3aed;--purple-l:#ede9fe;
+  --g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;
+  --g400:#9ca3af;--g500:#6b7280;--g600:#4b5563;--g700:#374151;
+  --g800:#1f2937;--g900:#111827;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--g50);color:var(--g800);font-size:13px;line-height:1.5;}
+canvas{max-width:100%;}.card{overflow:hidden;}
+
+.sidebar{position:fixed;top:0;left:0;width:238px;height:100vh;background:var(--g900);color:#fff;overflow-y:auto;z-index:100;}
+.sb-head{background:var(--green);padding:14px 16px;}
+.sb-head h1{font-size:13px;font-weight:800;}
+.sb-head p{font-size:10px;opacity:.8;margin-top:2px;}
+.sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px;}
+.sb-stat{background:rgba(0,0,0,.2);border-radius:5px;padding:5px 7px;text-align:center;}
+.sb-stat-v{font-size:15px;font-weight:800;}
+.sb-stat-l{font-size:8.5px;opacity:.7;text-transform:uppercase;letter-spacing:.3px;}
+.sb nav{padding:5px 0;}
+.nav-sec{padding:9px 16px 2px;font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:var(--g500);font-weight:700;}
+.sb nav a{display:block;padding:6px 16px;color:var(--g400);font-size:11px;font-weight:500;border-left:3px solid transparent;transition:all .15s;cursor:pointer;}
+.sb nav a:hover,.sb nav a.active{color:#fff;background:rgba(255,255,255,.06);border-left-color:var(--green);}
+.sb-legend{padding:10px 16px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-legend-title{font-size:8.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--g500);font-weight:700;margin-bottom:5px;}
+.legend-item{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:9.5px;color:var(--g400);}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.src-dot{display:inline-block;width:6px;height:6px;border-radius:50%;}
+.src-actual{background:var(--green);}.src-est{background:var(--g400);}
+
+.main{margin-left:238px;}
+.hero{background:linear-gradient(135deg,var(--g900) 0%,#1a2e0a 100%);color:#fff;padding:26px 40px 22px;}
+.hero h1{font-size:21px;font-weight:800;letter-spacing:-.5px;}
+.hero .sub{font-size:11px;color:var(--g400);margin-top:3px;}
+.hero-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:16px;}
+.hero-kpi{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:10px 12px;}
+.hk-label{font-size:8.5px;color:var(--g400);text-transform:uppercase;letter-spacing:.4px;}
+.hk-val{font-size:17px;font-weight:700;margin-top:2px;}
+.hk-delta{font-size:9px;margin-top:1px;}
+.d-pos{color:#4ade80;}.d-neg{color:#f87171;}.d-neu{color:var(--yellow);}
+
+.content{padding:18px 40px 70px;}
+.sec{display:none;}.sec.active{display:block;}
+.sec-hd{display:flex;align-items:center;gap:9px;margin:22px 0 12px;padding-bottom:9px;border-bottom:2px solid var(--g200);}
+.sec-hd h2{font-size:16px;font-weight:800;letter-spacing:-.3px;}
+.sec-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:var(--green);color:#fff;border-radius:50%;font-size:11px;font-weight:800;flex-shrink:0;}
+
+.card{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--g100);margin-bottom:11px;}
+.card-title{font-size:11px;font-weight:700;color:var(--g700);margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+
+/* ── COUNTRY CARD (detailed) ── */
+.ctry-card{background:#fff;border-radius:12px;border:2px solid var(--g200);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.ctry-card-head{padding:12px 14px 10px;border-bottom:1px solid var(--g100);}
+.ctry-title-row{display:flex;justify-content:space-between;align-items:flex-start;}
+.ctry-name{font-size:15px;font-weight:800;}
+.ctry-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
+.rec-badge{padding:2px 8px;border-radius:20px;font-size:8.5px;font-weight:800;letter-spacing:.4px;}
+.ctry-vfm{font-size:10.5px;color:var(--g600);margin-top:3px;}
+.ctry-score-bar{display:flex;height:5px;background:var(--g100);border-radius:3px;margin-top:8px;overflow:hidden;}
+.ctry-score-fill{border-radius:3px;transition:width .3s;}
+
+/* Metric rows */
+.ctry-body{padding:10px 14px;}
+.metric-group{margin-bottom:10px;}
+.metric-group-title{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--g500);margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid var(--g100);}
+.metric-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dotted var(--g100);}
+.metric-row:last-child{border-bottom:none;}
+.metric-indicator{width:12px;height:12px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;}
+.mi-green{background:#dcfce7;color:#166534;}
+.mi-red{background:#fee2e2;color:#991b1b;}
+.mi-yellow{background:#fef3c7;color:#92400e;}
+.mi-gray{background:var(--g100);color:var(--g500);}
+.metric-label{font-size:9.5px;color:var(--g600);flex:1;}
+.metric-value{font-size:10.5px;font-weight:700;text-align:right;white-space:nowrap;}
+.metric-avg{font-size:9px;color:var(--g400);margin-left:4px;font-weight:400;}
+.metric-comment{font-size:8.5px;color:var(--g500);font-style:italic;padding:1px 0 2px 18px;line-height:1.3;}
+
+/* Correlation panel */
+.corr-panel{background:var(--g50);border-radius:7px;padding:8px 10px;margin-top:8px;}
+.corr-title{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--g500);margin-bottom:5px;}
+.corr-row{display:flex;align-items:center;gap:6px;font-size:9.5px;padding:2px 0;}
+.corr-arrow{font-size:11px;}
+
+/* INTL avg strip */
+.intl-strip{background:var(--g800);color:white;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:0;}
+.intl-stat{padding:4px 12px;border-right:1px solid rgba(255,255,255,.1);}
+.intl-stat:last-child{border-right:none;}
+.intl-stat-label{font-size:8px;text-transform:uppercase;letter-spacing:.5px;opacity:.6;}
+.intl-stat-val{font-size:13px;font-weight:700;margin-top:1px;}
+
+/* Score breakdown */
+.score-breakdown{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.score-comp{background:var(--g50);border-radius:4px;padding:3px 7px;font-size:9px;}
+.score-comp b{font-weight:700;}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--g200);}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{text-align:left;padding:6px 8px;background:var(--g50);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--g500);border-bottom:2px solid var(--g200);white-space:nowrap;}
+th.r,td.r{text-align:right;}
+td{padding:5px 8px;border-bottom:1px solid var(--g100);vertical-align:middle;}
+tr:hover td{background:var(--g50);} tr:last-child td{border-bottom:none;}
+
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.bg{background:var(--green-l);color:var(--green-d);}
+.br{background:var(--red-l);color:var(--red);}
+.by{background:var(--yellow-l);color:#92400e;}
+.bb{background:var(--blue-l);color:var(--blue);}
+.bp{background:var(--purple-l);color:var(--purple);}
+
+.signal{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid;margin-bottom:6px;}
+.sig-icon{font-size:17px;flex-shrink:0;}
+.sig-body{flex:1;}
+.sig-title{font-size:11px;font-weight:700;}
+.sig-desc{font-size:9.5px;color:var(--g600);margin-top:1px;}
+.sig-btn{font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:6px;white-space:nowrap;color:#fff;}
+
+.score-row{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid var(--g100);}
+.score-row:last-child{border-bottom:none;}
+.score-name{width:88px;font-size:10px;font-weight:700;flex-shrink:0;}
+.score-track{flex:1;height:7px;background:var(--g200);border-radius:4px;overflow:hidden;}
+.score-fill{height:100%;border-radius:4px;}
+.score-val{width:28px;text-align:right;font-size:10px;font-weight:800;}
+.score-rec{width:66px;text-align:right;}
+
+.quad-mat{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:7px;height:250px;}
+.qm-cell{border-radius:8px;border:1.5px solid;padding:9px;display:flex;flex-direction:column;}
+.qm-title{font-size:9px;font-weight:800;margin-bottom:3px;}
+.qm-list{flex:1;overflow-y:auto;}
+.qm-rep{font-size:9px;padding:2px 0;border-bottom:1px dotted rgba(0,0,0,.07);}
+
+.filter-row{display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+select{border:1.5px solid var(--g300);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--g700);background:#fff;font-family:inherit;}
+select:focus{outline:none;border-color:var(--green);}
+
+.note-box{background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:7px 10px;font-size:10px;color:#92400e;margin-bottom:9px;}
+
+/* INFO SHEET */
+.info-section{margin-bottom:28px;}
+.info-section h3{font-size:15px;font-weight:800;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--g200);}
+.info-section h4{font-size:12px;font-weight:700;margin:12px 0 5px;color:var(--green-d);}
+.info-section p{font-size:11.5px;color:var(--g700);line-height:1.6;margin-bottom:6px;}
+.formula-box{background:var(--g900);color:#4ade80;border-radius:6px;padding:9px 12px;font-family:monospace;font-size:11px;margin:6px 0 10px;line-height:1.7;}
+.info-table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:11px;}
+.info-table th{background:var(--g800);color:white;padding:6px 10px;text-align:left;font-size:10px;font-weight:700;}
+.info-table td{padding:6px 10px;border-bottom:1px solid var(--g100);vertical-align:top;}
+.info-table tr:nth-child(even) td{background:var(--g50);}
+.connection-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;}
+.flow-box{background:var(--blue-l);border:1px solid #93c5fd;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:600;color:var(--blue);}
+.flow-arrow{font-size:14px;color:var(--g400);}
+.flow-box.warn{background:var(--yellow-l);border-color:#fcd34d;color:#92400e;}
+.flow-box.good{background:var(--green-l);border-color:#86efac;color:var(--green-d);}
+.flow-box.bad{background:var(--red-l);border-color:#fca5a5;color:var(--red);}
+
+.threshold-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:6px 0 3px;}
+.t-seg{flex:1;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:700;color:white;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sb-head">
+    <h1>Sales Efficiency Hub</h1>
+    <p>BD / MD Intelligence · QF2 FY2026</p>
+    <div class="sb-stats">
+      <div class="sb-stat"><div class="sb-stat-v">104</div><div class="sb-stat-l">BD Reps</div></div>
+      <div class="sb-stat"><div class="sb-stat-v">94</div><div class="sb-stat-l">MD Reps</div></div>
+      <div class="sb-stat"><div class="sb-stat-v">$54.5M</div><div class="sb-stat-l">INTL VFM</div></div>
+      <div class="sb-stat"><div class="sb-stat-v">9</div><div class="sb-stat-l">Markets</div></div>
+    </div>
+  </div>
+  <div class="sb">
+    <nav>
+      <div class="nav-sec">Overview</div>
+      <a onclick="nav('s0')" id="n-s0" class="active">🌍 Country Scorecards</a>
+      <div class="nav-sec">BD Analysis</div>
+      <a onclick="nav('s1')" id="n-s1">🎯 BD Performance</a>
+      <a onclick="nav('s2')" id="n-s2">📊 BD Decisions</a>
+      <div class="nav-sec">MD Analysis</div>
+      <a onclick="nav('s3')" id="n-s3">🌾 MD Performance</a>
+      <a onclick="nav('s4')" id="n-s4">📊 MD Capacity Decisions</a>
+      <div class="nav-sec">Reference</div>
+      <a onclick="nav('s5')" id="n-s5">⚖️ Org Structure</a>
+      <a onclick="nav('s6')" id="n-s6">📖 Logic & Methodology</a>
+    </nav>
+    <div class="sb-legend">
+      <div class="sb-legend-title">BD Quadrant (absolute ROI)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#53a318"></div>Star ≥ 2.5x annual ROI</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Solid 1.5–2.5x</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div>PIP 0.8–1.5x</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Critical &lt;0.8x</div>
+    </div>
+    <div class="sb-legend">
+      <div class="sb-legend-title">Data Source</div>
+      <div class="legend-item"><div class="src-dot src-actual"></div> Actual (payroll match)</div>
+      <div class="legend-item"><div class="src-dot src-est"></div> Estimated (distribution)</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="hero">
+    <h1>📊 Sales Efficiency Dashboard</h1>
+    <p class="sub">BD/MD Hiring Intelligence · INTL Markets · QF2 FY2026 · 72/104 BD & 54/94 MD reps on actual GP data</p>
+    <div class="hero-kpis" id="hero-kpis"></div>
+  </div>
+  <div class="content">
+
+    <!-- S0: COUNTRY SCORECARDS (DETAILED) -->
+    <div id="s0" class="sec active">
+      <div class="sec-hd"><span class="sec-num">0</span><h2>Country Scorecards — Detailed View</h2></div>
+
+      <!-- INTL Average Strip -->
+      <div class="intl-strip" id="intl-strip"></div>
+
+      <div class="g2" style="margin-bottom:14px;">
+        <div class="card">
+          <div class="card-title">📈 M1 VFM vs BD ROI vs Account Churn</div>
+          <div style="position:relative;height:155px;"><canvas id="c-s0-main"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔴 Revenue Freshness % (BD GP90 / M1 VFM) — BD contribution to total market</div>
+          <div style="position:relative;height:155px;"><canvas id="c-s0-fresh"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Country cards grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;" id="ctry-detail-grid"></div>
+    </div>
+
+    <!-- S1: BD PERFORMANCE -->
+    <div id="s1" class="sec">
+      <div class="sec-hd"><span class="sec-num">1</span><h2>BD Hunter Performance</h2><span class="badge bg">104 Reps · 72 Actual GP</span></div>
+      <div class="note-box"><b>Annual ROI</b> = GP90 × 4 ÷ Cost · <b>Lifetime ROI</b> = GP90 × 3 ÷ Cost (3x confirmed multiplier) · <b>Breakeven</b> = Annual Cost ÷ (GP90÷3) in months, only for &lt;36mo tenure & ≥3 reps per country</div>
+      <div class="g4" id="bd-kpis" style="margin-bottom:11px;"></div>
+      <div class="card" style="padding:10px 14px;margin-bottom:11px;">
+        <div class="card-title">ROI Tiers (absolute)</div>
+        <div class="threshold-bar">
+          <div class="t-seg" style="background:#7c3aed;flex:.8;">Critical &lt;0.8x</div>
+          <div class="t-seg" style="background:#dc2626;flex:.7;">PIP 0.8–1.5x</div>
+          <div class="t-seg" style="background:#2563eb;flex:1.0;">Solid 1.5–2.5x</div>
+          <div class="t-seg" style="background:#53a318;flex:1.5;">Star ≥ 2.5x</div>
+        </div>
+        <div style="font-size:9px;color:var(--g500);margin-top:3px;">Lifetime ROI ≥ 3.0x = self-funding rep (GP90 covers annual cost within one quarter)</div>
+      </div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">🔵 Quadrant — Annual ROI vs Cost</div>
+          <div style="position:relative;height:200px;"><canvas id="c-quad"></canvas></div></div>
+        <div class="card"><div class="card-title">📦 Distribution by Tier</div>
+          <div class="quad-mat" id="quad-mat"></div></div>
+      </div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">⏱ Breakeven — New Joiners &lt;36mo only</div>
+          <div style="position:relative;height:145px;"><canvas id="c-be"></canvas></div></div>
+        <div class="card"><div class="card-title">📊 ROI vs GP90 by Country</div>
+          <div style="position:relative;height:145px;"><canvas id="c-bd-ctry"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+          <div style="font-size:12px;font-weight:700;">BD Rep Detail</div>
+          <div class="filter-row" style="margin:0;">
+            <select id="bd-f-ctry" onchange="renderBD()"><option value="ALL">All Countries</option></select>
+            <select id="bd-f-quad" onchange="renderBD()"><option value="ALL">All Tiers</option><option>Star</option><option>Solid</option><option>PIP / Exit</option><option>Critical</option></select>
+            <select id="bd-f-src" onchange="renderBD()"><option value="ALL">All Data</option><option value="actual">Actual GP</option><option value="estimated">Estimated</option></select>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Name</th><th>Ctry</th><th class="r">Cost</th><th class="r">GP90</th><th class="r">GP365</th><th class="r">Ann ROI</th><th class="r">Lifetime ROI</th><th class="r">Breakeven</th><th class="r">Ctry Churn</th><th>Tier</th><th>Action</th><th>Source</th></tr></thead>
+          <tbody id="bd-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- S2: BD DECISIONS -->
+    <div id="s2" class="sec">
+      <div class="sec-hd"><span class="sec-num">2</span><h2>BD Hiring Decisions</h2></div>
+      <div class="note-box"><b>Hire signal</b> = all 3 conditions vs INTL median: ROI above median AND account churn at/below median AND breakeven below median. Countries with &lt;3 new joiners are NOT penalised on breakeven.</div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">🚦 BD Decision Framework</div><div id="bd-fw"></div></div>
+        <div class="card"><div class="card-title">📐 BD Market Readiness Score</div><div id="bd-readiness"></div></div>
+      </div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">🫧 ROI vs Account Churn — Country Positioning</div>
+          <div style="position:relative;height:175px;"><canvas id="c-bd-bubble"></canvas></div></div>
+        <div class="card"><div class="card-title">⭐ Stars vs PIP/Critical by Country</div>
+          <div style="position:relative;height:175px;"><canvas id="c-bd-pip"></canvas></div></div>
+      </div>
+      <div class="sec-hd" style="margin-top:4px;"><span class="sec-num">→</span><h2>BD Country Recommendations</h2></div>
+      <div class="g3" id="bd-rec-cards"></div>
+    </div>
+
+    <!-- S3: MD PERFORMANCE -->
+    <div id="s3" class="sec">
+      <div class="sec-hd"><span class="sec-num">3</span><h2>MD Farmer Performance</h2><span class="badge bg">94 Reps · 54 Actual GP</span></div>
+      <div class="note-box"><b>BoB</b> = GP365 (annualised GP) managed per rep · <b>BoB/Live Accounts</b> = BoB ÷ number of active accounts per rep · <b>Score</b>: BoB/cost coverage + GP growth + churn + high-value accounts (4 dimensions)</div>
+      <div class="g4" id="md-kpis" style="margin-bottom:11px;"></div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">📚 BoB/Cost Coverage Ratio by Country</div>
+          <div style="position:relative;height:150px;"><canvas id="c-md-cov"></canvas></div></div>
+        <div class="card"><div class="card-title">📊 GP Growth % vs Acct Churn % by Country</div>
+          <div style="position:relative;height:150px;"><canvas id="c-md-health"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+          <div style="font-size:12px;font-weight:700;">MD Rep Detail</div>
+          <div class="filter-row" style="margin:0;">
+            <select id="md-f-ctry" onchange="renderMD()"><option value="ALL">All Countries</option></select>
+            <select id="md-f-perf" onchange="renderMD()"><option value="ALL">All Performance</option><option>High Performer</option><option>Solid</option><option>At Risk</option><option>Underperformer</option></select>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Name</th><th>Ctry</th><th class="r">Cost</th><th class="r">GP90</th><th class="r">BoB (GP365)</th><th class="r">BoB/Cost</th><th class="r">Live Accts</th><th class="r">High-Val</th><th class="r">BoB/Live Acct</th><th class="r">GP Growth</th><th class="r">Churn</th><th class="r">MD ROI</th><th>Performance</th><th>Action</th><th>Src</th></tr></thead>
+          <tbody id="md-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- S4: MD CAPACITY DECISIONS -->
+    <div id="s4" class="sec">
+      <div class="sec-hd"><span class="sec-num">4</span><h2>MD Capacity Decisions</h2></div>
+      <div class="note-box"><b>Capacity signal logic:</b> Compare each country's <b>BoB per rep</b> and <b>live accounts per rep</b> vs INTL median. High BoB/rep + high churn = overloaded (hire MD). Low BoB/rep + high churn = performance issue (PIP, not hire). Decision grid uses 4 quadrants on these 2 axes.</div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">🌾 MD Capacity Decision Framework</div><div id="md-fw"></div></div>
+        <div class="card"><div class="card-title">📐 MD Capacity Score (BoB/rep + churn + growth)</div><div id="md-readiness"></div></div>
+      </div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card">
+          <div class="card-title">🫧 BoB/Live Acc vs Churn — Capacity Diagnostic</div>
+          <div style="font-size:9px;color:var(--g500);margin-bottom:6px;">Top-right = high BoB/acct + high churn = overloaded → HIRE · Bottom-right = low BoB/acct + high churn = underperforming → PIP</div>
+          <div style="position:relative;height:175px;"><canvas id="c-md-bubble"></canvas></div>
+        </div>
+        <div class="card"><div class="card-title">📊 BoB per Rep vs Avg Live Accounts per Rep</div>
+          <div style="position:relative;height:175px;"><canvas id="c-md-bob-acc"></canvas></div></div>
+      </div>
+      <div class="sec-hd" style="margin-top:4px;"><span class="sec-num">→</span><h2>MD Country Recommendations</h2></div>
+      <div class="g3" id="md-rec-cards"></div>
+    </div>
+
+    <!-- S5: ORG STRUCTURE -->
+    <div id="s5" class="sec">
+      <div class="sec-hd"><span class="sec-num">5</span><h2>Org Structure & Ratio Analysis</h2></div>
+      <div class="g4" id="struct-kpis" style="margin-bottom:11px;"></div>
+      <div class="g2" style="margin-bottom:11px;">
+        <div class="card"><div class="card-title">👥 BD vs MD Headcount</div>
+          <div style="position:relative;height:150px;"><canvas id="c-hc"></canvas></div></div>
+        <div class="card"><div class="card-title">💰 BD vs MD Annual Cost ($K)</div>
+          <div style="position:relative;height:150px;"><canvas id="c-cost"></canvas></div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="card-title">📐 BD:MD Ratio (0.8–1.2 benchmark)</div>
+          <div style="position:relative;height:150px;"><canvas id="c-ratio"></canvas></div></div>
+        <div class="card"><div class="card-title">🏆 VFM per Total FTE ($K)</div>
+          <div style="position:relative;height:150px;"><canvas id="c-vfm"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- S6: LOGIC & METHODOLOGY -->
+    <div id="s6" class="sec">
+      <div class="sec-hd"><span class="sec-num">6</span><h2>Logic & Methodology Reference</h2></div>
+
+      <div class="info-section">
+        <h3>1. Data Sources & Coverage</h3>
+        <table class="info-table"><thead><tr><th>Sheet</th><th>Used For</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td><b>QF2_26_SPL — INTL Karel</b></td><td>All BD & MD rep names, annual fully-loaded cost (Base+Taxes+Bonus)</td><td>104 BD, 94 MD — complete INTL headcount</td></tr>
+          <tr><td><b>Indirect Costs — BD-OppOwners</b></td><td>BD GP90 (Oct–Jan actual), account churn signal</td><td>72/104 BD matched by fuzzy name + country</td></tr>
+          <tr><td><b>Indirect Costs — MD-AccOwners</b></td><td>MD GP90 (Oct–Jan actual) = BoB proxy</td><td>54/94 MD matched by fuzzy name + country</td></tr>
+          <tr><td><b>Executive Summary</b></td><td>M1 VFM ($M) per country, YoY growth %</td><td>9 INTL markets — complete</td></tr>
+        </tbody></table>
+        <p>Unmatched reps receive estimated GP values drawn from the real distribution of matched reps in the same country (not from the global pool). Estimated values are flagged with a grey dot throughout the dashboard.</p>
+      </div>
+
+      <div class="info-section">
+        <h3>2. BD Metrics — Definitions & Formulas</h3>
+        <h4>Annual ROI (core BD metric)</h4>
+        <div class="formula-box">Annual ROI = (GP90 × 4) ÷ Annual Cost<br>Where: GP90 = sum of Oct+Nov+Dec+Jan gross profit<br>Annual Cost = Base + Taxes + Bonus (from SPL)</div>
+        <h4>Lifetime ROI (3x confirmed multiplier)</h4>
+        <div class="formula-box">Lifetime ROI = GP90 × 3 ÷ Annual Cost<br>Context: avg account lifetime GP ≈ 3× the first 90-day GP<br>Lifetime ROI ≥ 1.0x = rep has paid back their annual cost from launched accounts alone</div>
+        <h4>GP365 (Annualised GP)</h4>
+        <div class="formula-box">GP365 = GP90 × 4<br>Used as: revenue run-rate, BoB proxy for BD reps, basis for Annual ROI</div>
+        <h4>Breakeven (new joiners only)</h4>
+        <div class="formula-box">Breakeven (months) = Annual Cost ÷ (GP90 ÷ 3)<br>= months of GP90-pace output needed to cover full annual cost<br>Only computed for reps with estimated tenure &lt; 36 months<br>Only shown at country level when ≥ 3 such reps exist</div>
+        <h4>Account Churn (country-level signal)</h4>
+        <div class="formula-box">Acct Churn % = (reps with GP_Oct &gt; 0 AND GP_Jan = 0) ÷ (reps with GP_Oct &gt; 0) × 100<br>Interpretation: % of BD-opened accounts that dropped to zero GP by January<br>This is a COMBINED signal — reflects BD account quality AND MD retention effectiveness</div>
+        <h4>Revenue Freshness</h4>
+        <div class="formula-box">Revenue Freshness % = Total BD GP90 (country) ÷ M1 VFM (country, $) × 100<br>High freshness = market driven by new account opening (hunter-led)<br>Low freshness = mature farming market (MD-led revenue base)<br>Optimal range depends on market maturity; compare vs INTL average</div>
+
+        <h4>ROI Tier Thresholds (absolute, not relative)</h4>
+        <table class="info-table"><thead><tr><th>Tier</th><th>Annual ROI</th><th>Interpretation</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge bg">Star</span></td><td>≥ 2.5x</td><td>Rep generates 2.5× their cost in annual GP. Lifetime ROI ≥ 7.5x</td><td>Keep & Grow</td></tr>
+          <tr><td><span class="badge bb">Solid</span></td><td>1.5–2.5x</td><td>Profitable, developing. Target coaching towards Star</td><td>Develop</td></tr>
+          <tr><td><span class="badge br">PIP / Exit</span></td><td>0.8–1.5x</td><td>Below break-even on annual basis. Needs improvement plan</td><td>PIP → Replace</td></tr>
+          <tr><td><span class="badge bp">Critical</span></td><td>&lt; 0.8x</td><td>Generating less than their cost. Immediate action required</td><td>Immediate Exit</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="info-section">
+        <h3>3. MD Metrics — Definitions & Formulas</h3>
+        <h4>BoB (Book of Business)</h4>
+        <div class="formula-box">BoB = GP90 × 4 = annualised GP managed by the MD<br>This represents the total annual revenue value the MD is responsible for retaining and growing</div>
+        <h4>BoB / Live Accounts per Rep (key capacity metric)</h4>
+        <div class="formula-box">BoB per Live Account = BoB ÷ Number of Active Accounts<br>High value = MD manages large/complex accounts (capacity risk if churn rises)<br>Low value = MD manages many small accounts (efficiency question)</div>
+        <h4>BoB / Cost Coverage Ratio</h4>
+        <div class="formula-box">Coverage Ratio = BoB ÷ Annual MD Cost<br>Interpretation: how much revenue each $ of MD salary is protecting<br>≥ 15x = excellent · 8–15x = solid · &lt; 8x = review capacity or BoB allocation</div>
+        <h4>MD Performance Score (4 dimensions)</h4>
+        <table class="info-table"><thead><tr><th>Dimension</th><th>Points</th><th>Threshold</th></tr></thead>
+        <tbody>
+          <tr><td>BoB/Cost Coverage</td><td>2 pts if &gt;15x, 1 pt if &gt;8x</td><td>High coverage = more revenue protected per $ spent</td></tr>
+          <tr><td>GP Growth YoY</td><td>2 pts if &gt;15%, 1 pt if &gt;0%</td><td>Positive growth = MD is growing existing accounts</td></tr>
+          <tr><td>Account Churn</td><td>2 pts if &lt;8%, 1 pt if &lt;15%</td><td>Low churn = strong account retention</td></tr>
+          <tr><td>High-Value Accounts</td><td>2 pts if ≥5, 1 pt if ≥2</td><td>Concentration of strategic accounts per rep</td></tr>
+        </tbody></table>
+        <p>Score 7–8 = High Performer · 4–6 = Solid · 2–3 = At Risk · 0–1 = Underperformer</p>
+      </div>
+
+      <div class="info-section">
+        <h3>4. Metric Connections & Diagnostic Logic</h3>
+        <h4>BD → MD Account Health Chain</h4>
+        <div class="connection-flow">
+          <div class="flow-box">BD opens account</div><div class="flow-arrow">→</div>
+          <div class="flow-box">GP90 generated in 90 days</div><div class="flow-arrow">→</div>
+          <div class="flow-box">Account handed to MD</div><div class="flow-arrow">→</div>
+          <div class="flow-box good">MD retains (low churn) = Lifetime GP 3x</div>
+        </div>
+        <div class="connection-flow">
+          <div class="flow-box">BD opens account</div><div class="flow-arrow">→</div>
+          <div class="flow-box">GP90 generated</div><div class="flow-arrow">→</div>
+          <div class="flow-box">Account handed to MD</div><div class="flow-arrow">→</div>
+          <div class="flow-box bad">MD loses account = lifetime GP &lt; 1x</div>
+        </div>
+        <p>Account churn % (BD sheet) reflects BOTH BD account quality at launch AND MD ability to retain. High churn in a market with high BD ROI = MD capacity/performance issue. High churn with low BD ROI = BD opening low-quality accounts.</p>
+
+        <h4>MD Capacity Diagnostic (BoB/rep vs Churn)</h4>
+        <table class="info-table"><thead><tr><th>BoB/Acct vs Median</th><th>Churn vs Median</th><th>Signal</th><th>Root Cause</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>High (above)</td><td>High (above)</td><td style="color:#53a318;font-weight:700;">HIRE MD</td><td>MDs overloaded — each account gets less attention → churn rises</td><td>Add MD capacity before churn compounds</td></tr>
+          <tr><td>Low (below)</td><td>High (above)</td><td style="color:#dc2626;font-weight:700;">PIP / Develop</td><td>Small accounts, still churning = performance issue not capacity</td><td>Coaching/PIP before any hiring</td></tr>
+          <tr><td>High (above)</td><td>Low (below)</td><td style="color:#2563eb;font-weight:700;">MAINTAIN</td><td>High-value accounts well retained = efficient MDs</td><td>Steady state, monitor BoB concentration</td></tr>
+          <tr><td>Low (below)</td><td>Low (below)</td><td style="color:#f59e0b;font-weight:700;">WATCH</td><td>Low value, low churn — may lack strategic accounts</td><td>Review BoB quality and account assignment</td></tr>
+        </tbody></table>
+
+        <h4>Revenue Freshness & Market Maturity</h4>
+        <div class="connection-flow">
+          <div class="flow-box warn">High Freshness (&gt;10%)</div><div class="flow-arrow">→</div>
+          <div class="flow-box">Hunter-led market</div><div class="flow-arrow">→</div>
+          <div class="flow-box warn">More dependent on BD</div><div class="flow-arrow">→</div>
+          <div class="flow-box bad">Vulnerable to BD attrition</div>
+        </div>
+        <div class="connection-flow">
+          <div class="flow-box good">Low Freshness (&lt;5%)</div><div class="flow-arrow">→</div>
+          <div class="flow-box">Farmer-led / mature market</div><div class="flow-arrow">→</div>
+          <div class="flow-box good">Stable revenue base</div><div class="flow-arrow">→</div>
+          <div class="flow-box warn">May need BD to refresh BoB</div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h3>5. Country Score Calculation</h3>
+        <div class="formula-box">Country Score (0–100) = ROI Score + Growth Score + Churn Score + VFM/FTE Score + Breakeven Score*<br><br>ROI Score    = min(30, avg_roi × 12)         → max 30 pts<br>Growth Score = min(25, (YoY+0.2)/0.6 × 25)  → max 25 pts<br>Churn Score  = min(20, (20−churn%)/20 × 20) → max 20 pts<br>VFM/FTE Score= min(15, vfm_k / 12)          → max 15 pts<br>BE Score     = min(10, (15−avg_be)/10 × 10) → max 10 pts (*only if ≥3 new joiners)<br><br>Score 70–100 = strong market  |  50–69 = developing  |  35–49 = watch  |  &lt;35 = review</div>
+
+        <h4>BD Hire Signal Logic</h4>
+        <div class="formula-box">HIRE  = avg_roi &gt; INTL_median_roi  AND  bd_churn ≤ INTL_median_churn  AND  avg_be &lt; INTL_median_be (if ≥3 joiners)<br>MAINTAIN = avg_roi &gt; INTL_median  AND (churn OR breakeven condition not met)<br>WATCH = avg_roi ≤ INTL_median  AND  avg_roi ≥ 1.0x<br>REVIEW = avg_roi &lt; 1.0x  OR  churn &gt; 25%</div>
+
+        <h4>MD Hire Signal Logic</h4>
+        <div class="formula-box">HIRE MD  = avg_churn &gt; INTL_md_median  AND  avg_ggr &lt; INTL_ggr_median  AND  avg_bob_per_rep &gt; INTL_bob_median<br>DEVELOP  = one metric below median (not all three)<br>MAINTAIN = churn ≤ median  AND  growth ≥ median<br>REVIEW MD = churn &gt; median  AND  growth &lt; median  AND  bob_per_rep &lt; median (performance, not capacity)</div>
+      </div>
+
+      <div class="info-section">
+        <h3>6. Known Limitations & Assumptions</h3>
+        <table class="info-table"><thead><tr><th>Assumption</th><th>Impact</th><th>Recommendation</th></tr></thead>
+        <tbody>
+          <tr><td>GP90 × 4 = GP365 (linear annualisation)</td><td>Ignores seasonality — Q4 may be stronger</td><td>Replace with trailing 12-month GP when available</td></tr>
+          <tr><td>3x lifetime multiplier is a flat assumption</td><td>May vary by country/vertical — UK accounts may be stickier than AU</td><td>Build per-country cohort analysis when historical data available</td></tr>
+          <tr><td>Account churn from BD sheet = combined BD+MD signal</td><td>Cannot isolate whether churn is due to poor BD quality or poor MD retention</td><td>Cross-reference with account age at churn to separate causes</td></tr>
+          <tr><td>MD tenure and live account count are estimated</td><td>BoB/live account metric has estimation error</td><td>Connect to Salesforce for live account counts</td></tr>
+          <tr><td>Breakeven uses cost proxy for junior/senior distinction</td><td>May over-penalise senior reps with genuinely longer ramp</td><td>Segment by role band when pay grades are available</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const D = {"bd": [{"ctry": "ES", "name": "Agustina Pasmanter Gonz\u00e1lez", "cost": 52868, "gp90": 3747, "gp_ann": 14988, "gp_lifetime": 11241, "roi": 0.28, "roi_lifetime": 0.21, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 16, "src": "estimated", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "ES", "name": "Alberto L\u00f3pez Mart\u00edn", "cost": 55379, "gp90": 18526, "gp_ann": 74104, "gp_lifetime": 55578, "roi": 1.34, "roi_lifetime": 1.0, "be_months": 9, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 22, "src": "estimated", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "ES", "name": "Alejandro Alvarez Guill\u00e9n", "cost": 78287, "gp90": 25668, "gp_ann": 102672, "gp_lifetime": 77004, "roi": 1.31, "roi_lifetime": 0.98, "be_months": 9, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 25, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "ES", "name": "Anas Abou", "cost": 75713, "gp90": 19923, "gp_ann": 79692, "gp_lifetime": 59769, "roi": 1.05, "roi_lifetime": 0.79, "be_months": 11, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 4, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "ES", "name": "Azahara Ortega", "cost": 55652, "gp90": 19476, "gp_ann": 77904, "gp_lifetime": 58428, "roi": 1.4, "roi_lifetime": 1.05, "be_months": 9, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 23, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "ES", "name": "Esmeralda Mart\u00ednez Del Campo", "cost": 46377, "gp90": 131, "gp_ann": 524, "gp_lifetime": 393, "roi": 0.01, "roi_lifetime": 0.01, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 54, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "ES", "name": "Gloria Meizhen Lim", "cost": 68596, "gp90": 12543, "gp_ann": 50172, "gp_lifetime": 37629, "roi": 0.73, "roi_lifetime": 0.55, "be_months": 16, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 3, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "ES", "name": "Gloria Ros", "cost": 55379, "gp90": 5719, "gp_ann": 22876, "gp_lifetime": 17157, "roi": 0.41, "roi_lifetime": 0.31, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 31, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "ES", "name": "Javi Garrido G\u00f3mez", "cost": 66469, "gp90": 33184, "gp_ann": 132736, "gp_lifetime": 99552, "roi": 2.0, "roi_lifetime": 1.5, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 39, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "ES", "name": "Javier Arcos D\u00edaz", "cost": 78953, "gp90": 32584, "gp_ann": 130336, "gp_lifetime": 97752, "roi": 1.65, "roi_lifetime": 1.24, "be_months": 7, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 3, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "ES", "name": "Jesus Sanz", "cost": 70080, "gp90": 42685, "gp_ann": 170740, "gp_lifetime": 128055, "roi": 2.44, "roi_lifetime": 1.83, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 65, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "ES", "name": "Jos\u00e9 L\u00f3pez", "cost": 53402, "gp90": 9602, "gp_ann": 38408, "gp_lifetime": 28806, "roi": 0.72, "roi_lifetime": 0.54, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 61, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "ES", "name": "Juan Jose Ascorbe Chang", "cost": 58151, "gp90": 25034, "gp_ann": 100136, "gp_lifetime": 75102, "roi": 1.72, "roi_lifetime": 1.29, "be_months": 7, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 22, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "ES", "name": "Julio Llacer Villanueva", "cost": 95294, "gp90": 42377, "gp_ann": 169508, "gp_lifetime": 127131, "roi": 1.78, "roi_lifetime": 1.33, "be_months": 7, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 34, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "ES", "name": "Laura Gonzalez Carranza", "cost": 57713, "gp90": 48144, "gp_ann": 192576, "gp_lifetime": 144432, "roi": 3.34, "roi_lifetime": 2.5, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 59, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "ES", "name": "Laura Gonzalez Velazquez", "cost": 87043, "gp90": 29866, "gp_ann": 119464, "gp_lifetime": 89598, "roi": 1.37, "roi_lifetime": 1.03, "be_months": 9, "be_applicable": true, "ctry_acct_churn": 13.6, "tenure_mo": 23, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "ES", "name": "Mamen Bueno Ca\u00f1ada", "cost": 75266, "gp90": 37258, "gp_ann": 149032, "gp_lifetime": 111774, "roi": 1.98, "roi_lifetime": 1.49, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 50, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "ES", "name": "Paula Ballarta Gomez", "cost": 70015, "gp90": 61714, "gp_ann": 246856, "gp_lifetime": 185142, "roi": 3.53, "roi_lifetime": 2.64, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 60, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "ES", "name": "Rafael Llatas L\u00f3pez", "cost": 55379, "gp90": 20489, "gp_ann": 81956, "gp_lifetime": 61467, "roi": 1.48, "roi_lifetime": 1.11, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 43, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "ES", "name": "[MOVE] Florencia Freier", "cost": 39150, "gp90": 24295, "gp_ann": 97181, "gp_lifetime": 72885, "roi": 2.48, "roi_lifetime": 1.86, "be_months": null, "be_applicable": false, "ctry_acct_churn": 13.6, "tenure_mo": 63, "src": "estimated", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Ana Nikolic", "cost": 57308, "gp90": 26150, "gp_ann": 104600, "gp_lifetime": 78450, "roi": 1.83, "roi_lifetime": 1.37, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 65, "src": "estimated", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Andreas Stuch", "cost": 111604, "gp90": 63621, "gp_ann": 254484, "gp_lifetime": 190863, "roi": 2.28, "roi_lifetime": 1.71, "be_months": 5, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 4, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Anna-Marie Rempel", "cost": 55692, "gp90": 4131, "gp_ann": 16525, "gp_lifetime": 12393, "roi": 0.3, "roi_lifetime": 0.22, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 22, "src": "estimated", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "DE", "name": "Anna-Sophia Kuebach", "cost": 102115, "gp90": 35111, "gp_ann": 140444, "gp_lifetime": 105333, "roi": 1.38, "roi_lifetime": 1.03, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 40, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "DE", "name": "Constantin Wunderlin", "cost": 77512, "gp90": 47497, "gp_ann": 189989, "gp_lifetime": 142492, "roi": 2.45, "roi_lifetime": 1.84, "be_months": 5, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 19, "src": "estimated", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Cristian Garcia Cuellar", "cost": 55692, "gp90": 42521, "gp_ann": 170083, "gp_lifetime": 127562, "roi": 3.05, "roi_lifetime": 2.29, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 54, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "David Mikhalski", "cost": 55692, "gp90": 60171, "gp_ann": 240682, "gp_lifetime": 180512, "roi": 4.32, "roi_lifetime": 3.24, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 3, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Denis Djuzelovic", "cost": 57308, "gp90": 42504, "gp_ann": 170017, "gp_lifetime": 127512, "roi": 2.97, "roi_lifetime": 2.23, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 45, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Donya Habib", "cost": 60325, "gp90": 70489, "gp_ann": 281958, "gp_lifetime": 211468, "roi": 4.67, "roi_lifetime": 3.51, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 9, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Doreen Schernus", "cost": 77504, "gp90": 37130, "gp_ann": 148520, "gp_lifetime": 111390, "roi": 1.92, "roi_lifetime": 1.44, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 48, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Francis Nkemasong", "cost": 55692, "gp90": 41271, "gp_ann": 165084, "gp_lifetime": 123813, "roi": 2.96, "roi_lifetime": 2.22, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 51, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Karolina Kru\u017cel", "cost": 60325, "gp90": 33245, "gp_ann": 132981, "gp_lifetime": 99736, "roi": 2.2, "roi_lifetime": 1.65, "be_months": 5, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 5, "src": "estimated", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Katerina Weidner", "cost": 71620, "gp90": 29031, "gp_ann": 116124, "gp_lifetime": 87093, "roi": 1.62, "roi_lifetime": 1.22, "be_months": 7, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 3, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Lisa Brandl", "cost": 57308, "gp90": 26594, "gp_ann": 106378, "gp_lifetime": 79783, "roi": 1.86, "roi_lifetime": 1.39, "be_months": 6, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 5, "src": "estimated", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "DE", "name": "Nalan H\u00fcsrafoglu", "cost": 55692, "gp90": 37474, "gp_ann": 149898, "gp_lifetime": 112423, "roi": 2.69, "roi_lifetime": 2.02, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 55, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Sascha Guenther", "cost": 70925, "gp90": 26472, "gp_ann": 105888, "gp_lifetime": 79416, "roi": 1.49, "roi_lifetime": 1.12, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 64, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "DE", "name": "Serap Bulut", "cost": 53353, "gp90": 17966, "gp_ann": 71864, "gp_lifetime": 53898, "roi": 1.35, "roi_lifetime": 1.01, "be_months": 9, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 19, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "DE", "name": "Sharon T\u00f6gel", "cost": 58622, "gp90": 37385, "gp_ann": 149539, "gp_lifetime": 112155, "roi": 2.55, "roi_lifetime": 1.91, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 49, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Ulrich Thara", "cost": 85052, "gp90": 6997, "gp_ann": 27988, "gp_lifetime": 20991, "roi": 0.33, "roi_lifetime": 0.25, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 10.0, "tenure_mo": 16, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "DE", "name": "Wesal Noktehsanj", "cost": 60325, "gp90": 42492, "gp_ann": 169967, "gp_lifetime": 127476, "roi": 2.82, "roi_lifetime": 2.11, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 63, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "DE", "name": "Zeynep D\u00f6nmezer", "cost": 55692, "gp90": 17643, "gp_ann": 70572, "gp_lifetime": 52929, "roi": 1.27, "roi_lifetime": 0.95, "be_months": null, "be_applicable": false, "ctry_acct_churn": 10.0, "tenure_mo": 54, "src": "estimated", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "FR", "name": "Alejandro Guerrero", "cost": 69886, "gp90": 19030, "gp_ann": 76120, "gp_lifetime": 57090, "roi": 1.09, "roi_lifetime": 0.82, "be_months": 11, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 25, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "FR", "name": "Alice Bastien", "cost": 104136, "gp90": 59132, "gp_ann": 236528, "gp_lifetime": 177396, "roi": 2.27, "roi_lifetime": 1.7, "be_months": 5, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 27, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "FR", "name": "Arnaud Fournier", "cost": 104841, "gp90": 13684, "gp_ann": 54735, "gp_lifetime": 41051, "roi": 0.52, "roi_lifetime": 0.39, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 61, "src": "estimated", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "FR", "name": "Benjamin Clavert", "cost": 99253, "gp90": 20946, "gp_ann": 83784, "gp_lifetime": 62838, "roi": 0.84, "roi_lifetime": 0.63, "be_months": 14, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 16, "src": "estimated", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "FR", "name": "Charles Fresno", "cost": 67582, "gp90": 64438, "gp_ann": 257752, "gp_lifetime": 193314, "roi": 3.81, "roi_lifetime": 2.86, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 46, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Exauc\u00e9e Lingole Masota", "cost": 15921, "gp90": 49713, "gp_ann": 198853, "gp_lifetime": 149140, "roi": 12.49, "roi_lifetime": 9.37, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 66, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Fabien Lauvray", "cost": 70793, "gp90": 33578, "gp_ann": 134312, "gp_lifetime": 100734, "roi": 1.9, "roi_lifetime": 1.42, "be_months": 6, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 10, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "FR", "name": "Fabien Rault", "cost": 70183, "gp90": 33990, "gp_ann": 135961, "gp_lifetime": 101971, "roi": 1.94, "roi_lifetime": 1.45, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 64, "src": "estimated", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "FR", "name": "Fran\u00e7ois Filippi", "cost": 111965, "gp90": 82483, "gp_ann": 329932, "gp_lifetime": 247449, "roi": 2.95, "roi_lifetime": 2.21, "be_months": 4, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 12, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Henda Romdhane", "cost": 75332, "gp90": 44413, "gp_ann": 177652, "gp_lifetime": 133239, "roi": 2.36, "roi_lifetime": 1.77, "be_months": 5, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 9, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "FR", "name": "Hubert Vonderscher", "cost": 69549, "gp90": 63839, "gp_ann": 255356, "gp_lifetime": 191517, "roi": 3.67, "roi_lifetime": 2.75, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 36, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Hugo Vanhulst", "cost": 68202, "gp90": 44921, "gp_ann": 179684, "gp_lifetime": 134763, "roi": 2.63, "roi_lifetime": 1.98, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 36, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Jean de Cupper", "cost": 67794, "gp90": 47624, "gp_ann": 190496, "gp_lifetime": 142872, "roi": 2.81, "roi_lifetime": 2.11, "be_months": 4, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 34, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Jeanne Farin", "cost": 65819, "gp90": 42837, "gp_ann": 171348, "gp_lifetime": 128511, "roi": 2.6, "roi_lifetime": 1.95, "be_months": 5, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 6, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Johan Soboul", "cost": 68202, "gp90": 58535, "gp_ann": 234140, "gp_lifetime": 175605, "roi": 3.43, "roi_lifetime": 2.57, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 42, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Julie Trajkovic", "cost": 74353, "gp90": 30270, "gp_ann": 121080, "gp_lifetime": 90810, "roi": 1.63, "roi_lifetime": 1.22, "be_months": 7, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 29, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "FR", "name": "Julien Aussant", "cost": 69505, "gp90": 15865, "gp_ann": 63460, "gp_lifetime": 47595, "roi": 0.91, "roi_lifetime": 0.68, "be_months": 13, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 8, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "FR", "name": "Regis Orselly", "cost": 94650, "gp90": 82930, "gp_ann": 331720, "gp_lifetime": 248790, "roi": 3.5, "roi_lifetime": 2.63, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 13, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Richard Ribierre", "cost": 95002, "gp90": 39859, "gp_ann": 159436, "gp_lifetime": 119577, "roi": 1.68, "roi_lifetime": 1.26, "be_months": 7, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 35, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "FR", "name": "Samia Meziane", "cost": 75912, "gp90": 56292, "gp_ann": 225168, "gp_lifetime": 168876, "roi": 2.97, "roi_lifetime": 2.22, "be_months": 4, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 34, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Sarah Ayad", "cost": 67815, "gp90": 45072, "gp_ann": 180288, "gp_lifetime": 135216, "roi": 2.66, "roi_lifetime": 1.99, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 49, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "FR", "name": "Xavier Glondu", "cost": 70183, "gp90": 14477, "gp_ann": 57908, "gp_lifetime": 43431, "roi": 0.83, "roi_lifetime": 0.62, "be_months": 15, "be_applicable": true, "ctry_acct_churn": 0, "tenure_mo": 24, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Alan Morris", "cost": 75468, "gp90": 20722, "gp_ann": 82888, "gp_lifetime": 62166, "roi": 1.1, "roi_lifetime": 0.82, "be_months": null, "be_applicable": false, "ctry_acct_churn": 16.7, "tenure_mo": 63, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Chris Gamble", "cost": 105376, "gp90": 29268, "gp_ann": 117072, "gp_lifetime": 87804, "roi": 1.11, "roi_lifetime": 0.83, "be_months": null, "be_applicable": false, "ctry_acct_churn": 16.7, "tenure_mo": 38, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Debi Reilly", "cost": 95526, "gp90": 18866, "gp_ann": 75464, "gp_lifetime": 56598, "roi": 0.79, "roi_lifetime": 0.59, "be_months": null, "be_applicable": false, "ctry_acct_churn": 16.7, "tenure_mo": 45, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "UK", "name": "Dipesh Parbat", "cost": 91107, "gp90": 25977, "gp_ann": 103909, "gp_lifetime": 77932, "roi": 1.14, "roi_lifetime": 0.86, "be_months": null, "be_applicable": false, "ctry_acct_churn": 16.7, "tenure_mo": 66, "src": "estimated", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Hamzah Ibraimo", "cost": 82824, "gp90": 24027, "gp_ann": 96107, "gp_lifetime": 72080, "roi": 1.16, "roi_lifetime": 0.87, "be_months": null, "be_applicable": false, "ctry_acct_churn": 16.7, "tenure_mo": 48, "src": "estimated", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Jackie Tiller", "cost": 57925, "gp90": 65093, "gp_ann": 260372, "gp_lifetime": 195279, "roi": 4.5, "roi_lifetime": 3.37, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 16.7, "tenure_mo": 4, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "UK", "name": "Laura Trowbridge", "cost": 73877, "gp90": 20156, "gp_ann": 80624, "gp_lifetime": 60468, "roi": 1.09, "roi_lifetime": 0.82, "be_months": 11, "be_applicable": true, "ctry_acct_churn": 16.7, "tenure_mo": 2, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Matthew Connor", "cost": 157057, "gp90": 157601, "gp_ann": 630404, "gp_lifetime": 472803, "roi": 4.01, "roi_lifetime": 3.01, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 16.7, "tenure_mo": 6, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "UK", "name": "Rob Playford-Wall", "cost": 45690, "gp90": 111629, "gp_ann": 446514, "gp_lifetime": 334886, "roi": 9.77, "roi_lifetime": 7.33, "be_months": 1, "be_applicable": true, "ctry_acct_churn": 16.7, "tenure_mo": 28, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "UK", "name": "Ross Walker", "cost": 134690, "gp90": 45423, "gp_ann": 181692, "gp_lifetime": 136269, "roi": 1.35, "roi_lifetime": 1.01, "be_months": 9, "be_applicable": true, "ctry_acct_churn": 16.7, "tenure_mo": 10, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "UK", "name": "Sangeeta Bhardwa", "cost": 85854, "gp90": 26989, "gp_ann": 107956, "gp_lifetime": 80967, "roi": 1.26, "roi_lifetime": 0.94, "be_months": 10, "be_applicable": true, "ctry_acct_churn": 16.7, "tenure_mo": 16, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "BENL", "name": "Kim Vercruyssen", "cost": 123611, "gp90": 10875, "gp_ann": 43500, "gp_lifetime": 32625, "roi": 0.35, "roi_lifetime": 0.26, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 43, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "BENL", "name": "Leila Bova", "cost": 71407, "gp90": 8302, "gp_ann": 33208, "gp_lifetime": 24906, "roi": 0.47, "roi_lifetime": 0.35, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 52, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "IE", "name": "David Johnson", "cost": 82985, "gp90": 14658, "gp_ann": 58632, "gp_lifetime": 43974, "roi": 0.71, "roi_lifetime": 0.53, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 64, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "IE", "name": "Rachel Keegan", "cost": 127126, "gp90": 44526, "gp_ann": 178104, "gp_lifetime": 133578, "roi": 1.4, "roi_lifetime": 1.05, "be_months": null, "be_applicable": false, "ctry_acct_churn": 0, "tenure_mo": 53, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "PL", "name": "Aleksandra B\u0105czek", "cost": 39748, "gp90": 345, "gp_ann": 1380, "gp_lifetime": 1035, "roi": 0.03, "roi_lifetime": 0.03, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 28.6, "tenure_mo": 5, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "PL", "name": "Andrzej Ku\u015bmierczyk", "cost": 52024, "gp90": 89836, "gp_ann": 359344, "gp_lifetime": 269508, "roi": 6.91, "roi_lifetime": 5.18, "be_months": 2, "be_applicable": true, "ctry_acct_churn": 28.6, "tenure_mo": 24, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Artur Kaliciecki", "cost": 85617, "gp90": 57196, "gp_ann": 228785, "gp_lifetime": 171589, "roi": 2.67, "roi_lifetime": 2.0, "be_months": 4, "be_applicable": true, "ctry_acct_churn": 28.6, "tenure_mo": 16, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Bartosz Figura", "cost": 33410, "gp90": 11579, "gp_ann": 46316, "gp_lifetime": 34737, "roi": 1.39, "roi_lifetime": 1.04, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 44, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "PL", "name": "Dawid Komuda", "cost": 39748, "gp90": 85599, "gp_ann": 342394, "gp_lifetime": 256796, "roi": 8.61, "roi_lifetime": 6.46, "be_months": 1, "be_applicable": true, "ctry_acct_churn": 28.6, "tenure_mo": 29, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Ernest D\u0105browski", "cost": 44716, "gp90": 25, "gp_ann": 100, "gp_lifetime": 75, "roi": 0.0, "roi_lifetime": 0.0, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 67, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "PL", "name": "Gracjan Tymanowski", "cost": 53013, "gp90": 38228, "gp_ann": 152912, "gp_lifetime": 114684, "roi": 2.88, "roi_lifetime": 2.16, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 43, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Katarzyna Siczek-Wo\u0142y\u0144ska", "cost": 36195, "gp90": 9913, "gp_ann": 39652, "gp_lifetime": 29739, "roi": 1.1, "roi_lifetime": 0.82, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 46, "src": "actual", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}, {"ctry": "PL", "name": "Konrad Dolega", "cost": 39748, "gp90": 45858, "gp_ann": 183432, "gp_lifetime": 137574, "roi": 4.61, "roi_lifetime": 3.46, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 63, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Leszek Powier\u017ca", "cost": 42232, "gp90": 48181, "gp_ann": 192722, "gp_lifetime": 144542, "roi": 4.56, "roi_lifetime": 3.42, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 28.6, "tenure_mo": 29, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Pawe\u0142 Babiuch", "cost": 39748, "gp90": 41, "gp_ann": 164, "gp_lifetime": 123, "roi": 0.0, "roi_lifetime": 0.0, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 45, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "PL", "name": "Robert Niepiek\u0142o", "cost": 59410, "gp90": 61487, "gp_ann": 245948, "gp_lifetime": 184461, "roi": 4.14, "roi_lifetime": 3.1, "be_months": 3, "be_applicable": true, "ctry_acct_churn": 28.6, "tenure_mo": 31, "src": "actual", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "Weronika Ku\u015bmierek", "cost": 42232, "gp90": 34726, "gp_ann": 138902, "gp_lifetime": 104177, "roi": 3.29, "roi_lifetime": 2.47, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 63, "src": "estimated", "quadrant": "Star", "q_color": "#53a318", "action": "Keep & Grow"}, {"ctry": "PL", "name": "\u0141ukasz Chyb", "cost": 39748, "gp90": 2456, "gp_ann": 9824, "gp_lifetime": 7368, "roi": 0.25, "roi_lifetime": 0.19, "be_months": null, "be_applicable": false, "ctry_acct_churn": 28.6, "tenure_mo": 63, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Ajelle Khoury", "cost": 97826, "gp90": 2615, "gp_ann": 10460, "gp_lifetime": 7845, "roi": 0.11, "roi_lifetime": 0.08, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 11.1, "tenure_mo": 2, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Ankit Sachdeva", "cost": 111783, "gp90": 20308, "gp_ann": 81232, "gp_lifetime": 60924, "roi": 0.73, "roi_lifetime": 0.55, "be_months": 17, "be_applicable": true, "ctry_acct_churn": 11.1, "tenure_mo": 28, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Brendon D\u2019Souza", "cost": 105061, "gp90": 4915, "gp_ann": 19660, "gp_lifetime": 14745, "roi": 0.19, "roi_lifetime": 0.14, "be_months": null, "be_applicable": false, "ctry_acct_churn": 11.1, "tenure_mo": 63, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Paul Loxley", "cost": 95223, "gp90": 12687, "gp_ann": 50748, "gp_lifetime": 38061, "roi": 0.53, "roi_lifetime": 0.4, "be_months": 23, "be_applicable": true, "ctry_acct_churn": 11.1, "tenure_mo": 4, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Ravi Krishna", "cost": 103503, "gp90": 5935, "gp_ann": 23740, "gp_lifetime": 17805, "roi": 0.23, "roi_lifetime": 0.17, "be_months": null, "be_applicable": false, "ctry_acct_churn": 11.1, "tenure_mo": 71, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Shehan Desilva", "cost": 103503, "gp90": 3730, "gp_ann": 14920, "gp_lifetime": 11190, "roi": 0.14, "roi_lifetime": 0.11, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 11.1, "tenure_mo": 28, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Simon Acok", "cost": 101856, "gp90": 4316, "gp_ann": 17264, "gp_lifetime": 12948, "roi": 0.17, "roi_lifetime": 0.13, "be_months": 24, "be_applicable": true, "ctry_acct_churn": 11.1, "tenure_mo": 10, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "AU", "name": "Stephanie Rawnsley", "cost": 97826, "gp90": 7551, "gp_ann": 30204, "gp_lifetime": 22653, "roi": 0.31, "roi_lifetime": 0.23, "be_months": null, "be_applicable": false, "ctry_acct_churn": 11.1, "tenure_mo": 63, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "UAE", "name": "Anum Zameer Najeeb", "cost": 77963, "gp90": 36506, "gp_ann": 146024, "gp_lifetime": 109518, "roi": 1.87, "roi_lifetime": 1.4, "be_months": null, "be_applicable": false, "ctry_acct_churn": 20.0, "tenure_mo": 38, "src": "actual", "quadrant": "Solid", "q_color": "#2563eb", "action": "Develop"}, {"ctry": "UAE", "name": "Laura Marx", "cost": 154879, "gp90": 27939, "gp_ann": 111754, "gp_lifetime": 83816, "roi": 0.72, "roi_lifetime": 0.54, "be_months": null, "be_applicable": false, "ctry_acct_churn": 20.0, "tenure_mo": 45, "src": "estimated", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "UAE", "name": "Majeed Azzam", "cost": 67417, "gp90": 11106, "gp_ann": 44424, "gp_lifetime": 33318, "roi": 0.66, "roi_lifetime": 0.49, "be_months": 18, "be_applicable": true, "ctry_acct_churn": 20.0, "tenure_mo": 25, "src": "actual", "quadrant": "Critical", "q_color": "#7c3aed", "action": "Immediate Exit"}, {"ctry": "UAE", "name": "Mohamed Talaat", "cost": 80301, "gp90": 22167, "gp_ann": 88669, "gp_lifetime": 66502, "roi": 1.1, "roi_lifetime": 0.83, "be_months": null, "be_applicable": false, "ctry_acct_churn": 20.0, "tenure_mo": 53, "src": "estimated", "quadrant": "PIP / Exit", "q_color": "#dc2626", "action": "PIP \u2192 Replace"}], "md": [{"ctry": "ES", "name": "Aida Valerio Honorato", "cost": 72897, "gp90": 403785, "gp_ann": 1615140, "bob": 1615140, "accounts": 31, "high_val": 6, "gp_growth": 3.1, "churn": 10.9, "bob_per_acc": 52101, "coverage_ratio": 22.2, "md_roi": 22.16, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "Ainhoa Leal Cano", "cost": 73528, "gp90": 432829, "gp_ann": 1731316, "bob": 1731316, "accounts": 37, "high_val": 2, "gp_growth": -2.0, "churn": 18.8, "bob_per_acc": 46792, "coverage_ratio": 23.5, "md_roi": 23.55, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "ES", "name": "Beatriz \u00c1lvarez De la Osa", "cost": 62631, "gp90": 417625, "gp_ann": 1670501, "bob": 1670501, "accounts": 59, "high_val": 5, "gp_growth": -4.0, "churn": 19.8, "bob_per_acc": 28314, "coverage_ratio": 26.7, "md_roi": 26.67, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "Carlos Gray Vilches", "cost": 51411, "gp90": 832, "gp_ann": 3328, "bob": 3328, "accounts": 10, "high_val": 1, "gp_growth": 12.0, "churn": 21.6, "bob_per_acc": 333, "coverage_ratio": 0.1, "md_roi": 0.06, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "ES", "name": "Cristina Gonzalez Redondo", "cost": 61175, "gp90": 383237, "gp_ann": 1532948, "bob": 1532948, "accounts": 36, "high_val": 5, "gp_growth": 15.1, "churn": 13.0, "bob_per_acc": 42582, "coverage_ratio": 25.1, "md_roi": 25.06, "src": "actual", "perf": "High Performer", "p_color": "#53a318", "action": "Increase BoB"}, {"ctry": "ES", "name": "Emilio Abelenda Borrega", "cost": 50563, "gp90": 218357, "gp_ann": 873430, "bob": 873430, "accounts": 28, "high_val": 4, "gp_growth": 24.6, "churn": 14.6, "bob_per_acc": 31194, "coverage_ratio": 17.3, "md_roi": 17.27, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "Florencia Freier", "cost": 39150, "gp90": 174322, "gp_ann": 697288, "bob": 697288, "accounts": 25, "high_val": 3, "gp_growth": -8.5, "churn": 12.4, "bob_per_acc": 27892, "coverage_ratio": 17.8, "md_roi": 17.81, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "Gaetano Presti", "cost": 40892, "gp90": 3346, "gp_ann": 13384, "bob": 13384, "accounts": 10, "high_val": 1, "gp_growth": -0.9, "churn": 14.9, "bob_per_acc": 1338, "coverage_ratio": 0.3, "md_roi": 0.33, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "ES", "name": "Jorge Puig Franc\u00e9s", "cost": 41679, "gp90": 188470, "gp_ann": 753880, "bob": 753880, "accounts": 10, "high_val": 1, "gp_growth": 16.9, "churn": 15.5, "bob_per_acc": 75388, "coverage_ratio": 18.1, "md_roi": 18.09, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "Juan Carlos Taboada del Castillo", "cost": 74581, "gp90": 498968, "gp_ann": 1995872, "bob": 1995872, "accounts": 21, "high_val": 3, "gp_growth": -5.6, "churn": 21.9, "bob_per_acc": 95042, "coverage_ratio": 26.8, "md_roi": 26.76, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "ES", "name": "Lucas Rafael Capece", "cost": 61052, "gp90": 220489, "gp_ann": 881956, "bob": 881956, "accounts": 10, "high_val": 1, "gp_growth": -16.5, "churn": 12.2, "bob_per_acc": 88196, "coverage_ratio": 14.4, "md_roi": 14.45, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "ES", "name": "Maria Belen Martin Gomez", "cost": 57566, "gp90": 55638, "gp_ann": 222552, "bob": 222552, "accounts": 10, "high_val": 1, "gp_growth": 0.5, "churn": 19.6, "bob_per_acc": 22255, "coverage_ratio": 3.9, "md_roi": 3.87, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "ES", "name": "Maximo Fux", "cost": 45903, "gp90": 33070, "gp_ann": 132280, "bob": 132280, "accounts": 10, "high_val": 1, "gp_growth": 7.7, "churn": 20.7, "bob_per_acc": 13228, "coverage_ratio": 2.9, "md_roi": 2.88, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "ES", "name": "Ra\u00fal Mart\u00edn Fuertes", "cost": 71847, "gp90": 471881, "gp_ann": 1887524, "bob": 1887524, "accounts": 20, "high_val": 3, "gp_growth": 1.9, "churn": 15.9, "bob_per_acc": 94376, "coverage_ratio": 26.3, "md_roi": 26.27, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "Virginia Pio Rios", "cost": 78662, "gp90": 588701, "gp_ann": 2354804, "bob": 2354804, "accounts": 64, "high_val": 11, "gp_growth": 1.1, "churn": 19.8, "bob_per_acc": 36794, "coverage_ratio": 29.9, "md_roi": 29.94, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "ES", "name": "[MOVE] Gloria Ros", "cost": 55379, "gp90": 80172, "gp_ann": 320688, "bob": 320688, "accounts": 13, "high_val": 1, "gp_growth": 20.7, "churn": 20.5, "bob_per_acc": 24668, "coverage_ratio": 5.8, "md_roi": 5.79, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Ann-Kathrin Timm", "cost": 89187, "gp90": 199628, "gp_ann": 798512, "bob": 798512, "accounts": 10, "high_val": 1, "gp_growth": -2.2, "churn": 18.1, "bob_per_acc": 79851, "coverage_ratio": 9.0, "md_roi": 8.95, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "DE", "name": "Antonia Weber", "cost": 55692, "gp90": 198053, "gp_ann": 792212, "bob": 792212, "accounts": 10, "high_val": 1, "gp_growth": -0.3, "churn": 18.3, "bob_per_acc": 79221, "coverage_ratio": 14.2, "md_roi": 14.23, "src": "estimated", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "DE", "name": "Christian Peters", "cost": 95920, "gp90": 192271, "gp_ann": 769084, "bob": 769084, "accounts": 24, "high_val": 2, "gp_growth": 32.3, "churn": 11.4, "bob_per_acc": 32045, "coverage_ratio": 8.0, "md_roi": 8.02, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "DE", "name": "Ingo Schaefer", "cost": 91334, "gp90": 161366, "gp_ann": 645464, "bob": 645464, "accounts": 10, "high_val": 1, "gp_growth": -0.3, "churn": 16.1, "bob_per_acc": 64546, "coverage_ratio": 7.1, "md_roi": 7.07, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "DE", "name": "Jacqueline Osiolkowski", "cost": 76012, "gp90": 171923, "gp_ann": 687692, "bob": 687692, "accounts": 10, "high_val": 1, "gp_growth": 19.4, "churn": 13.9, "bob_per_acc": 68769, "coverage_ratio": 9.0, "md_roi": 9.05, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "DE", "name": "Laura Hof", "cost": 55692, "gp90": 232819, "gp_ann": 931275, "bob": 931275, "accounts": 23, "high_val": 3, "gp_growth": -3.4, "churn": 16.9, "bob_per_acc": 40490, "coverage_ratio": 16.7, "md_roi": 16.72, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Linda Tosch", "cost": 55692, "gp90": 167284, "gp_ann": 669136, "bob": 669136, "accounts": 26, "high_val": 4, "gp_growth": 18.1, "churn": 16.9, "bob_per_acc": 25736, "coverage_ratio": 12.0, "md_roi": 12.02, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "DE", "name": "Madeleine K\u00f6nig", "cost": 67855, "gp90": 170637, "gp_ann": 682550, "bob": 682550, "accounts": 10, "high_val": 1, "gp_growth": -0.7, "churn": 8.9, "bob_per_acc": 68255, "coverage_ratio": 10.1, "md_roi": 10.06, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Manuela Boyi-Garcia", "cost": 60748, "gp90": 162130, "gp_ann": 648520, "bob": 648520, "accounts": 10, "high_val": 1, "gp_growth": 12.1, "churn": 10.0, "bob_per_acc": 64852, "coverage_ratio": 10.7, "md_roi": 10.68, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Marcel Rene Hollendorf", "cost": 54152, "gp90": 176114, "gp_ann": 704458, "bob": 704458, "accounts": 10, "high_val": 1, "gp_growth": 14.1, "churn": 15.2, "bob_per_acc": 70446, "coverage_ratio": 13.0, "md_roi": 13.01, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Oezlem Topal", "cost": 64804, "gp90": 150517, "gp_ann": 602068, "bob": 602068, "accounts": 10, "high_val": 1, "gp_growth": -4.2, "churn": 19.3, "bob_per_acc": 60207, "coverage_ratio": 9.3, "md_roi": 9.29, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "DE", "name": "Renate Mueller", "cost": 102564, "gp90": 228949, "gp_ann": 915796, "bob": 915796, "accounts": 17, "high_val": 1, "gp_growth": 22.1, "churn": 17.1, "bob_per_acc": 53870, "coverage_ratio": 8.9, "md_roi": 8.93, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Roger Falke", "cost": 73031, "gp90": 117523, "gp_ann": 470092, "bob": 470092, "accounts": 10, "high_val": 1, "gp_growth": 15.7, "churn": 17.1, "bob_per_acc": 47009, "coverage_ratio": 6.4, "md_roi": 6.44, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Sera Llapjani", "cost": 99108, "gp90": 166023, "gp_ann": 664092, "bob": 664092, "accounts": 10, "high_val": 1, "gp_growth": 55.7, "churn": 18.8, "bob_per_acc": 66409, "coverage_ratio": 6.7, "md_roi": 6.7, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "DE", "name": "Stefan Mendes", "cost": 54529, "gp90": 186761, "gp_ann": 747044, "bob": 747044, "accounts": 10, "high_val": 1, "gp_growth": 0.2, "churn": 14.1, "bob_per_acc": 74704, "coverage_ratio": 13.7, "md_roi": 13.7, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "FR", "name": "Alexandre Polo", "cost": 44751, "gp90": 284206, "gp_ann": 1136826, "bob": 1136826, "accounts": 19, "high_val": 2, "gp_growth": 42.4, "churn": 15.7, "bob_per_acc": 59833, "coverage_ratio": 25.4, "md_roi": 25.4, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Alexia Pinazo", "cost": 83005, "gp90": 129019, "gp_ann": 516076, "bob": 516076, "accounts": 19, "high_val": 1, "gp_growth": 22.0, "churn": 11.1, "bob_per_acc": 27162, "coverage_ratio": 6.2, "md_roi": 6.22, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "FR", "name": "Azary Carenau", "cost": 66491, "gp90": 283787, "gp_ann": 1135148, "bob": 1135148, "accounts": 33, "high_val": 4, "gp_growth": 54.5, "churn": 10.1, "bob_per_acc": 34398, "coverage_ratio": 17.1, "md_roi": 17.07, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Bart Verhaeghe", "cost": 42554, "gp90": 346062, "gp_ann": 1384249, "bob": 1384249, "accounts": 19, "high_val": 1, "gp_growth": 41.9, "churn": 10.4, "bob_per_acc": 72855, "coverage_ratio": 32.5, "md_roi": 32.53, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Christophe Roumilhac", "cost": 75017, "gp90": 353262, "gp_ann": 1413048, "bob": 1413048, "accounts": 21, "high_val": 3, "gp_growth": 17.1, "churn": 13.7, "bob_per_acc": 67288, "coverage_ratio": 18.8, "md_roi": 18.84, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Fien Kerner", "cost": 31106, "gp90": 274839, "gp_ann": 1099356, "bob": 1099356, "accounts": 19, "high_val": 1, "gp_growth": 51.6, "churn": 15.0, "bob_per_acc": 57861, "coverage_ratio": 35.3, "md_roi": 35.34, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Guylaine Matthew", "cost": 86204, "gp90": 390978, "gp_ann": 1563912, "bob": 1563912, "accounts": 28, "high_val": 2, "gp_growth": 51.8, "churn": 11.1, "bob_per_acc": 55854, "coverage_ratio": 18.1, "md_roi": 18.14, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Ivan Peria\u00f1ez Bonifacio", "cost": 46713, "gp90": 275288, "gp_ann": 1101152, "bob": 1101152, "accounts": 16, "high_val": 2, "gp_growth": 26.3, "churn": 16.7, "bob_per_acc": 68822, "coverage_ratio": 23.6, "md_roi": 23.57, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Jeremy Delheure", "cost": 65212, "gp90": 422658, "gp_ann": 1690630, "bob": 1690630, "accounts": 30, "high_val": 2, "gp_growth": 53.8, "churn": 18.1, "bob_per_acc": 56354, "coverage_ratio": 25.9, "md_roi": 25.93, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Jessica Le D\u00e9an", "cost": 77346, "gp90": 311163, "gp_ann": 1244652, "bob": 1244652, "accounts": 49, "high_val": 3, "gp_growth": 32.9, "churn": 14.8, "bob_per_acc": 25401, "coverage_ratio": 16.1, "md_roi": 16.09, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Julia Patey", "cost": 53249, "gp90": 351108, "gp_ann": 1404433, "bob": 1404433, "accounts": 23, "high_val": 1, "gp_growth": 2.5, "churn": 8.9, "bob_per_acc": 61062, "coverage_ratio": 26.4, "md_roi": 26.37, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Margaux Denisselle", "cost": 66044, "gp90": 296567, "gp_ann": 1186268, "bob": 1186268, "accounts": 21, "high_val": 2, "gp_growth": 26.4, "churn": 11.2, "bob_per_acc": 56489, "coverage_ratio": 18.0, "md_roi": 17.96, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Maryline Cailleaux", "cost": 120132, "gp90": 319607, "gp_ann": 1278428, "bob": 1278428, "accounts": 24, "high_val": 3, "gp_growth": 43.0, "churn": 17.7, "bob_per_acc": 53268, "coverage_ratio": 10.6, "md_roi": 10.64, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Mike Meddour", "cost": 93319, "gp90": 262356, "gp_ann": 1049424, "bob": 1049424, "accounts": 14, "high_val": 1, "gp_growth": 41.5, "churn": 13.8, "bob_per_acc": 74959, "coverage_ratio": 11.2, "md_roi": 11.25, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Nadia Roggia", "cost": 74123, "gp90": 310950, "gp_ann": 1243800, "bob": 1243800, "accounts": 47, "high_val": 6, "gp_growth": 34.2, "churn": 13.5, "bob_per_acc": 26464, "coverage_ratio": 16.8, "md_roi": 16.78, "src": "actual", "perf": "High Performer", "p_color": "#53a318", "action": "Increase BoB"}, {"ctry": "FR", "name": "Peter Kok", "cost": 44396, "gp90": 345135, "gp_ann": 1380539, "bob": 1380539, "accounts": 25, "high_val": 3, "gp_growth": 67.0, "churn": 5.2, "bob_per_acc": 55222, "coverage_ratio": 31.1, "md_roi": 31.1, "src": "estimated", "perf": "High Performer", "p_color": "#53a318", "action": "Increase BoB"}, {"ctry": "FR", "name": "Pierre-Yves Chesnel", "cost": 91242, "gp90": 385271, "gp_ann": 1541084, "bob": 1541084, "accounts": 16, "high_val": 1, "gp_growth": 44.8, "churn": 10.5, "bob_per_acc": 96318, "coverage_ratio": 16.9, "md_roi": 16.89, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Remi Andre", "cost": 50245, "gp90": 298927, "gp_ann": 1195708, "bob": 1195708, "accounts": 13, "high_val": 1, "gp_growth": 35.5, "churn": 10.6, "bob_per_acc": 91978, "coverage_ratio": 23.8, "md_roi": 23.8, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "FR", "name": "Romain Thiriot", "cost": 42554, "gp90": 355089, "gp_ann": 1420356, "bob": 1420356, "accounts": 43, "high_val": 6, "gp_growth": 52.2, "churn": 14.2, "bob_per_acc": 33032, "coverage_ratio": 33.4, "md_roi": 33.38, "src": "estimated", "perf": "High Performer", "p_color": "#53a318", "action": "Increase BoB"}, {"ctry": "FR", "name": "Umair Khalil", "cost": 74123, "gp90": 353384, "gp_ann": 1413536, "bob": 1413536, "accounts": 17, "high_val": 2, "gp_growth": 31.5, "churn": 10.8, "bob_per_acc": 83149, "coverage_ratio": 19.1, "md_roi": 19.07, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Allison Landman", "cost": 51940, "gp90": 393829, "gp_ann": 1575318, "bob": 1575318, "accounts": 15, "high_val": 1, "gp_growth": 17.6, "churn": 26.8, "bob_per_acc": 105021, "coverage_ratio": 30.3, "md_roi": 30.33, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Amber Crompton", "cost": 33063, "gp90": 306878, "gp_ann": 1227511, "bob": 1227511, "accounts": 24, "high_val": 4, "gp_growth": 7.7, "churn": 26.1, "bob_per_acc": 51146, "coverage_ratio": 37.1, "md_roi": 37.13, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Charles William Farrar", "cost": 49388, "gp90": 398903, "gp_ann": 1595612, "bob": 1595612, "accounts": 50, "high_val": 9, "gp_growth": 20.1, "churn": 26.9, "bob_per_acc": 31912, "coverage_ratio": 32.3, "md_roi": 32.31, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Emma Pearcy", "cost": 43733, "gp90": 346661, "gp_ann": 1386644, "bob": 1386644, "accounts": 28, "high_val": 5, "gp_growth": 14.2, "churn": 21.2, "bob_per_acc": 49523, "coverage_ratio": 31.7, "md_roi": 31.71, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Fabiana Ustiola Carrasquero", "cost": 47251, "gp90": 351596, "gp_ann": 1406385, "bob": 1406385, "accounts": 19, "high_val": 2, "gp_growth": 17.4, "churn": 17.7, "bob_per_acc": 74020, "coverage_ratio": 29.8, "md_roi": 29.76, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Jiten Kataria", "cost": 92981, "gp90": 486505, "gp_ann": 1946020, "bob": 1946020, "accounts": 25, "high_val": 4, "gp_growth": -4.3, "churn": 24.2, "bob_per_acc": 77841, "coverage_ratio": 20.9, "md_roi": 20.93, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UK", "name": "Katie Masters", "cost": 99358, "gp90": 367479, "gp_ann": 1469916, "bob": 1469916, "accounts": 47, "high_val": 5, "gp_growth": 17.8, "churn": 22.0, "bob_per_acc": 31275, "coverage_ratio": 14.8, "md_roi": 14.79, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Laura Spina", "cost": 46044, "gp90": 301319, "gp_ann": 1205277, "bob": 1205277, "accounts": 20, "high_val": 3, "gp_growth": 0.4, "churn": 20.4, "bob_per_acc": 60264, "coverage_ratio": 26.2, "md_roi": 26.18, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Luca Zanini", "cost": 33587, "gp90": 372115, "gp_ann": 1488458, "bob": 1488458, "accounts": 20, "high_val": 1, "gp_growth": 3.5, "churn": 22.7, "bob_per_acc": 74423, "coverage_ratio": 44.3, "md_roi": 44.32, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UK", "name": "Madison Yates", "cost": 88332, "gp90": 389497, "gp_ann": 1557988, "bob": 1557988, "accounts": 52, "high_val": 9, "gp_growth": 4.2, "churn": 19.8, "bob_per_acc": 29961, "coverage_ratio": 17.6, "md_roi": 17.64, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Matthew Fox", "cost": 104172, "gp90": 337718, "gp_ann": 1350872, "bob": 1350872, "accounts": 44, "high_val": 8, "gp_growth": 13.1, "churn": 15.9, "bob_per_acc": 30702, "coverage_ratio": 13.0, "md_roi": 12.97, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Natalie Oliphant", "cost": 90758, "gp90": 275170, "gp_ann": 1100680, "bob": 1100680, "accounts": 12, "high_val": 2, "gp_growth": -6.6, "churn": 18.8, "bob_per_acc": 91723, "coverage_ratio": 12.1, "md_roi": 12.13, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UK", "name": "Niall Byrne", "cost": 47251, "gp90": 331435, "gp_ann": 1325739, "bob": 1325739, "accounts": 15, "high_val": 2, "gp_growth": 20.6, "churn": 21.1, "bob_per_acc": 88383, "coverage_ratio": 28.1, "md_roi": 28.06, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Oliver Causley", "cost": 41859, "gp90": 344062, "gp_ann": 1376248, "bob": 1376248, "accounts": 55, "high_val": 6, "gp_growth": -1.7, "churn": 23.0, "bob_per_acc": 25023, "coverage_ratio": 32.9, "md_roi": 32.88, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Rebecca IAnson Dove", "cost": 54520, "gp90": 291573, "gp_ann": 1166293, "bob": 1166293, "accounts": 14, "high_val": 1, "gp_growth": 9.0, "churn": 23.3, "bob_per_acc": 83307, "coverage_ratio": 21.4, "md_roi": 21.39, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UK", "name": "Sara Marzorati", "cost": 42336, "gp90": 390118, "gp_ann": 1560471, "bob": 1560471, "accounts": 38, "high_val": 7, "gp_growth": 5.5, "churn": 22.6, "bob_per_acc": 41065, "coverage_ratio": 36.9, "md_roi": 36.86, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Sebastian Farrer Pierre", "cost": 48676, "gp90": 346115, "gp_ann": 1384459, "bob": 1384459, "accounts": 46, "high_val": 6, "gp_growth": 10.6, "churn": 23.7, "bob_per_acc": 30097, "coverage_ratio": 28.4, "md_roi": 28.44, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Tamara Dobson", "cost": 41859, "gp90": 439540, "gp_ann": 1758161, "bob": 1758161, "accounts": 30, "high_val": 4, "gp_growth": 21.8, "churn": 25.2, "bob_per_acc": 58605, "coverage_ratio": 42.0, "md_roi": 42.0, "src": "estimated", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Victoria Westcott", "cost": 83751, "gp90": 350173, "gp_ann": 1400692, "bob": 1400692, "accounts": 51, "high_val": 4, "gp_growth": 12.5, "churn": 30.5, "bob_per_acc": 27465, "coverage_ratio": 16.7, "md_roi": 16.72, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Will Petre", "cost": 84071, "gp90": 386979, "gp_ann": 1547916, "bob": 1547916, "accounts": 34, "high_val": 2, "gp_growth": 0.6, "churn": 13.2, "bob_per_acc": 45527, "coverage_ratio": 18.4, "md_roi": 18.41, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UK", "name": "Zachary Burch", "cost": 84071, "gp90": 168855, "gp_ann": 675420, "bob": 675420, "accounts": 10, "high_val": 1, "gp_growth": 4.0, "churn": 23.1, "bob_per_acc": 67542, "coverage_ratio": 8.0, "md_roi": 8.03, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "BENL", "name": "Rick Zwart", "cost": 111552, "gp90": 104473, "gp_ann": 417892, "bob": 417892, "accounts": 10, "high_val": 1, "gp_growth": 28.5, "churn": 9.4, "bob_per_acc": 41789, "coverage_ratio": 3.7, "md_roi": 3.75, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "PL", "name": "Agnieszka Czy\u017cak", "cost": 46048, "gp90": 267404, "gp_ann": 1069616, "bob": 1069616, "accounts": 11, "high_val": 1, "gp_growth": -4.0, "churn": 28.3, "bob_per_acc": 97238, "coverage_ratio": 23.2, "md_roi": 23.23, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "PL", "name": "Agnieszka Wichowicz", "cost": 42622, "gp90": 79360, "gp_ann": 317440, "bob": 317440, "accounts": 10, "high_val": 1, "gp_growth": 12.1, "churn": 38.3, "bob_per_acc": 31744, "coverage_ratio": 7.4, "md_roi": 7.45, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "PL", "name": "Daniel \u0141\u0119czycki", "cost": 45108, "gp90": 171978, "gp_ann": 687912, "bob": 687912, "accounts": 10, "high_val": 1, "gp_growth": -15.5, "churn": 26.7, "bob_per_acc": 68791, "coverage_ratio": 15.3, "md_roi": 15.25, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "PL", "name": "Edyta Szl\u0119k", "cost": 54880, "gp90": 395510, "gp_ann": 1582040, "bob": 1582040, "accounts": 16, "high_val": 2, "gp_growth": 6.3, "churn": 33.1, "bob_per_acc": 98878, "coverage_ratio": 28.8, "md_roi": 28.83, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "PL", "name": "Jakub Pud\u0142o", "cost": 37783, "gp90": 34383, "gp_ann": 137532, "bob": 137532, "accounts": 10, "high_val": 1, "gp_growth": 5.0, "churn": 33.6, "bob_per_acc": 13753, "coverage_ratio": 3.6, "md_roi": 3.64, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "PL", "name": "Paulina Kowalska", "cost": 31619, "gp90": 210670, "gp_ann": 842680, "bob": 842680, "accounts": 10, "high_val": 1, "gp_growth": -9.3, "churn": 31.8, "bob_per_acc": 84268, "coverage_ratio": 26.7, "md_roi": 26.65, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "PL", "name": "Przemys\u0142aw Kowalewski", "cost": 37468, "gp90": 60325, "gp_ann": 241300, "bob": 241300, "accounts": 10, "high_val": 1, "gp_growth": -2.4, "churn": 34.1, "bob_per_acc": 24130, "coverage_ratio": 6.4, "md_roi": 6.44, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "PL", "name": "Sylwia Bartosiak", "cost": 58427, "gp90": 220492, "gp_ann": 881968, "bob": 881968, "accounts": 21, "high_val": 3, "gp_growth": -28.3, "churn": 38.7, "bob_per_acc": 41998, "coverage_ratio": 15.1, "md_roi": 15.1, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "PL", "name": "Sylwia Jadczak", "cost": 31386, "gp90": 198234, "gp_ann": 792936, "bob": 792936, "accounts": 24, "high_val": 3, "gp_growth": 8.7, "churn": 34.1, "bob_per_acc": 33039, "coverage_ratio": 25.3, "md_roi": 25.26, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "AU", "name": "Catherine Newman", "cost": 135262, "gp90": 264515, "gp_ann": 1058060, "bob": 1058060, "accounts": 16, "high_val": 2, "gp_growth": 12.1, "churn": 23.1, "bob_per_acc": 66129, "coverage_ratio": 7.8, "md_roi": 7.82, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "AU", "name": "Catia Piccoli", "cost": 94193, "gp90": 150613, "gp_ann": 602452, "bob": 602452, "accounts": 10, "high_val": 1, "gp_growth": -4.9, "churn": 21.6, "bob_per_acc": 60245, "coverage_ratio": 6.4, "md_roi": 6.4, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "AU", "name": "Jake Tropiano", "cost": 108679, "gp90": 102241, "gp_ann": 408966, "bob": 408966, "accounts": 11, "high_val": 1, "gp_growth": -4.4, "churn": 20.3, "bob_per_acc": 37179, "coverage_ratio": 3.8, "md_roi": 3.76, "src": "estimated", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "AU", "name": "Kate O'Brien", "cost": 120463, "gp90": 217565, "gp_ann": 870260, "bob": 870260, "accounts": 16, "high_val": 1, "gp_growth": -33.7, "churn": 15.0, "bob_per_acc": 54391, "coverage_ratio": 7.2, "md_roi": 7.22, "src": "actual", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "AU", "name": "Tanisha Mansera", "cost": 64648, "gp90": 226537, "gp_ann": 906148, "bob": 906148, "accounts": 14, "high_val": 2, "gp_growth": -4.0, "churn": 22.6, "bob_per_acc": 64725, "coverage_ratio": 14.0, "md_roi": 14.02, "src": "actual", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UAE", "name": "Disha Dhairyavan", "cost": 123435, "gp90": 50000, "gp_ann": 200000, "bob": 200000, "accounts": 10, "high_val": 1, "gp_growth": -4.9, "churn": 24.8, "bob_per_acc": 20000, "coverage_ratio": 1.6, "md_roi": 1.62, "src": "estimated", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "UAE", "name": "Joy Waack", "cost": 64740, "gp90": 210924, "gp_ann": 843695, "bob": 843695, "accounts": 13, "high_val": 1, "gp_growth": 15.1, "churn": 19.8, "bob_per_acc": 64900, "coverage_ratio": 13.0, "md_roi": 13.03, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UAE", "name": "Muna Mohamed Abusamra", "cost": 89532, "gp90": 280402, "gp_ann": 1121608, "bob": 1121608, "accounts": 37, "high_val": 2, "gp_growth": 23.5, "churn": 26.5, "bob_per_acc": 30314, "coverage_ratio": 12.5, "md_roi": 12.53, "src": "actual", "perf": "Solid", "p_color": "#2563eb", "action": "Maintain"}, {"ctry": "UAE", "name": "Pragya Dang", "cost": 73929, "gp90": 64002, "gp_ann": 256009, "bob": 256009, "accounts": 10, "high_val": 1, "gp_growth": 14.7, "churn": 28.8, "bob_per_acc": 25601, "coverage_ratio": 3.5, "md_roi": 3.46, "src": "estimated", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "UAE", "name": "Rime Metawihe", "cost": 89273, "gp90": 58915, "gp_ann": 235659, "bob": 235659, "accounts": 10, "high_val": 1, "gp_growth": 21.5, "churn": 22.9, "bob_per_acc": 23566, "coverage_ratio": 2.6, "md_roi": 2.64, "src": "estimated", "perf": "At Risk", "p_color": "#f59e0b", "action": "Develop"}, {"ctry": "UAE", "name": "Ritu Gill", "cost": 44816, "gp90": 80316, "gp_ann": 321264, "bob": 321264, "accounts": 10, "high_val": 1, "gp_growth": 14.2, "churn": 20.9, "bob_per_acc": 32126, "coverage_ratio": 7.2, "md_roi": 7.17, "src": "estimated", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}, {"ctry": "UAE", "name": "Yahya Iflal", "cost": 77963, "gp90": 106863, "gp_ann": 427453, "bob": 427453, "accounts": 10, "high_val": 1, "gp_growth": 1.1, "churn": 22.2, "bob_per_acc": 42745, "coverage_ratio": 5.5, "md_roi": 5.48, "src": "estimated", "perf": "Underperformer", "p_color": "#dc2626", "action": "PIP / Exit"}], "countries": {"ES": {"name": "Spain", "vfm": 11.7, "yoy": -0.017, "bd": 20, "md": 16, "avg_roi": 1.55, "avg_roi_lt": 1.16, "avg_gp90": 25648, "bd_churn": 13.6, "avg_be": 12.0, "be_n": 11, "stars": 2, "pip_bd": 11, "solid_bd": 7, "avg_cov": 16.3, "avg_churn_md": 17.0, "avg_bob_per": 42531, "avg_accounts": 24.6, "avg_md_roi": 16.3, "avg_hv": 3.1, "avg_ggr": 4.1, "hi_md": 1, "pip_md": 4, "md_matched": 13, "bd_cost": 1295166, "md_cost": 938916, "ftes": 36, "vfm_k": 325, "bd_md_r": 1.25, "bd_rec": "WATCH", "bd_rc": "#f59e0b", "bd_rb": "#fffbeb", "md_rec": "DEVELOP", "md_rc": "#f59e0b", "md_rb": "#fffbeb", "md_reason": "Churn or growth below median. Coaching before capacity decisions.", "total_score": 54, "rev_freshness": 4.4, "total_bd_gp90": 512965, "avg_bob_per_rep": 1042931, "avg_acc_per_rep": 24.6, "avg_hv_per_rep": 3.1, "bob_per_live_acc": 42396, "avg_md_churn": 17.0, "churn_flag": "healthy"}, "DE": {"name": "Germany", "vfm": 7.2, "yoy": 0.095, "bd": 21, "md": 15, "avg_roi": 2.21, "avg_roi_lt": 1.65, "avg_gp90": 35519, "bd_churn": 10.0, "avg_be": 9.1, "be_n": 10, "stars": 8, "pip_bd": 6, "solid_bd": 7, "avg_cov": 10.3, "avg_churn_md": 15.5, "avg_bob_per": 59761, "avg_accounts": 13.3, "avg_md_roi": 10.3, "avg_hv": 1.4, "avg_ggr": 11.9, "hi_md": 0, "pip_md": 4, "md_matched": 9, "bd_cost": 1395358, "md_cost": 1096320, "ftes": 36, "vfm_k": 200, "bd_md_r": 1.4, "bd_rec": "MAINTAIN", "bd_rc": "#2563eb", "bd_rb": "#eff6ff", "md_rec": "MAINTAIN", "md_rc": "#2563eb", "md_rb": "#eff6ff", "md_reason": "Healthy churn and growth. Steady state.", "total_score": 68, "rev_freshness": 10.4, "total_bd_gp90": 745895, "avg_bob_per_rep": 715200, "avg_acc_per_rep": 13.3, "avg_hv_per_rep": 1.4, "bob_per_live_acc": 53774, "avg_md_churn": 15.5, "churn_flag": "healthy"}, "FR": {"name": "France", "vfm": 7.7, "yoy": 0.414, "bd": 22, "md": 20, "avg_roi": 2.7, "avg_roi_lt": 2.03, "avg_gp90": 43815, "bd_churn": 0, "avg_be": 7.4, "be_n": 14, "stars": 11, "pip_bd": 5, "solid_bd": 6, "avg_cov": 21.3, "avg_churn_md": 12.7, "avg_bob_per": 57888, "avg_accounts": 24.8, "avg_md_roi": 21.3, "avg_hv": 2.4, "avg_ggr": 38.6, "hi_md": 3, "pip_md": 0, "md_matched": 10, "bd_cost": 1676878, "md_cost": 1327826, "ftes": 42, "vfm_k": 183, "bd_md_r": 1.1, "bd_rec": "HIRE", "bd_rc": "#53a318", "bd_rb": "#e8f5d9", "md_rec": "MAINTAIN", "md_rc": "#2563eb", "md_rb": "#eff6ff", "md_reason": "Healthy churn and growth. Steady state.", "total_score": 83, "rev_freshness": 12.5, "total_bd_gp90": 963928, "avg_bob_per_rep": 1269931, "avg_acc_per_rep": 24.8, "avg_hv_per_rep": 2.4, "bob_per_live_acc": 51207, "avg_md_churn": 12.7, "churn_flag": "healthy"}, "UK": {"name": "UK", "vfm": 11.3, "yoy": 0.103, "bd": 11, "md": 21, "avg_roi": 2.48, "avg_roi_lt": 1.86, "avg_gp90": 49614, "bd_churn": 16.7, "avg_be": 6.2, "be_n": 6, "stars": 3, "pip_bd": 8, "solid_bd": 0, "avg_cov": 25.9, "avg_churn_md": 22.3, "avg_bob_per": 55944, "avg_accounts": 30.9, "avg_md_roi": 25.9, "avg_hv": 4.1, "avg_ggr": 9.0, "hi_md": 0, "pip_md": 1, "md_matched": 8, "bd_cost": 1005394, "md_cost": 1309001, "ftes": 32, "vfm_k": 353, "bd_md_r": 0.52, "bd_rec": "MAINTAIN", "bd_rc": "#2563eb", "bd_rb": "#eff6ff", "md_rec": "HIRE MD", "md_rc": "#53a318", "md_rb": "#e8f5d9", "md_reason": "High churn + low growth despite high BoB/acc \u2192 understaffed, not underperforming", "total_score": 68, "rev_freshness": 4.8, "total_bd_gp90": 545751, "avg_bob_per_rep": 1405051, "avg_acc_per_rep": 30.9, "avg_hv_per_rep": 4.1, "bob_per_live_acc": 45471, "avg_md_churn": 22.3, "churn_flag": "capacity"}, "AU": {"name": "Australia", "vfm": 4.4, "yoy": -0.126, "bd": 8, "md": 5, "avg_roi": 0.3, "avg_roi_lt": 0.23, "avg_gp90": 7757, "bd_churn": 11.1, "avg_be": 22.4, "be_n": 5, "stars": 0, "pip_bd": 8, "solid_bd": 0, "avg_cov": 7.8, "avg_churn_md": 20.5, "avg_bob_per": 56534, "avg_accounts": 13.4, "avg_md_roi": 7.8, "avg_hv": 1.4, "avg_ggr": -7.0, "hi_md": 0, "pip_md": 3, "md_matched": 4, "bd_cost": 816581, "md_cost": 523245, "ftes": 13, "vfm_k": 338, "bd_md_r": 1.6, "bd_rec": "REVIEW", "bd_rc": "#dc2626", "bd_rb": "#fef2f2", "md_rec": "HIRE MD", "md_rc": "#53a318", "md_rb": "#e8f5d9", "md_reason": "High churn + low growth despite high BoB/acc \u2192 understaffed, not underperforming", "total_score": 38, "rev_freshness": 1.4, "total_bd_gp90": 62057, "avg_bob_per_rep": 769177, "avg_acc_per_rep": 13.4, "avg_hv_per_rep": 1.4, "bob_per_live_acc": 57401, "avg_md_churn": 20.5, "churn_flag": "performance"}, "PL": {"name": "Poland", "vfm": 5.9, "yoy": -0.099, "bd": 14, "md": 9, "avg_roi": 2.89, "avg_roi_lt": 2.17, "avg_gp90": 34676, "bd_churn": 28.6, "avg_be": 6.2, "be_n": 6, "stars": 8, "pip_bd": 6, "solid_bd": 0, "avg_cov": 16.9, "avg_churn_md": 33.2, "avg_bob_per": 54871, "avg_accounts": 13.6, "avg_md_roi": 16.9, "avg_hv": 1.6, "avg_ggr": -3.0, "hi_md": 0, "pip_md": 3, "md_matched": 8, "bd_cost": 647589, "md_cost": 385341, "ftes": 23, "vfm_k": 257, "bd_md_r": 1.56, "bd_rec": "MAINTAIN", "bd_rc": "#2563eb", "bd_rb": "#eff6ff", "md_rec": "DEVELOP", "md_rc": "#f59e0b", "md_rb": "#fffbeb", "md_reason": "Churn or growth below median. Coaching before capacity decisions.", "total_score": 65, "rev_freshness": 8.2, "total_bd_gp90": 485470, "avg_bob_per_rep": 728158, "avg_acc_per_rep": 13.6, "avg_hv_per_rep": 1.6, "bob_per_live_acc": 53541, "avg_md_churn": 33.2, "churn_flag": "performance"}, "UAE": {"name": "UAE", "vfm": 4.1, "yoy": 0.155, "bd": 4, "md": 7, "avg_roi": 1.09, "avg_roi_lt": 0.81, "avg_gp90": 24430, "bd_churn": 20.0, "avg_be": null, "be_n": 1, "stars": 0, "pip_bd": 3, "solid_bd": 1, "avg_cov": 6.6, "avg_churn_md": 23.7, "avg_bob_per": 34179, "avg_accounts": 14.3, "avg_md_roi": 6.6, "avg_hv": 1.1, "avg_ggr": 12.2, "hi_md": 0, "pip_md": 4, "md_matched": 1, "bd_cost": 380560, "md_cost": 563688, "ftes": 11, "vfm_k": 373, "bd_md_r": 0.57, "bd_rec": "WATCH", "bd_rc": "#f59e0b", "bd_rb": "#fffbeb", "md_rec": "DEVELOP", "md_rc": "#f59e0b", "md_rb": "#fffbeb", "md_reason": "Churn or growth below median. Coaching before capacity decisions.", "total_score": 39, "rev_freshness": 2.4, "total_bd_gp90": 97718, "avg_bob_per_rep": 486527, "avg_acc_per_rep": 14.3, "avg_hv_per_rep": 1.1, "bob_per_live_acc": 34023, "avg_md_churn": 23.7, "churn_flag": "performance"}, "IE": {"name": "Ireland", "vfm": 0.8, "yoy": -0.203, "bd": 2, "md": 0, "avg_roi": 1.05, "avg_roi_lt": 0.79, "avg_gp90": 29592, "bd_churn": 0, "avg_be": null, "be_n": 0, "stars": 0, "pip_bd": 2, "solid_bd": 0, "avg_cov": 0, "avg_churn_md": 0, "avg_bob_per": 0, "avg_accounts": 0, "avg_md_roi": 0, "avg_hv": 0, "avg_ggr": 0, "hi_md": 0, "pip_md": 0, "md_matched": 0, "bd_cost": 210111, "md_cost": 0, "ftes": 2, "vfm_k": 400, "bd_md_r": 2, "bd_rec": "WATCH", "bd_rc": "#f59e0b", "bd_rb": "#fffbeb", "md_rec": "DEVELOP", "md_rc": "#f59e0b", "md_rb": "#fffbeb", "md_reason": "Churn or growth below median. Coaching before capacity decisions.", "total_score": 58, "rev_freshness": 7.4, "total_bd_gp90": 59184, "avg_bob_per_rep": 0, "avg_acc_per_rep": 0, "avg_hv_per_rep": 0, "bob_per_live_acc": 0, "avg_md_churn": 0, "churn_flag": null}, "BENL": {"name": "Belgium/NL", "vfm": 1.6, "yoy": 0.06, "bd": 2, "md": 1, "avg_roi": 0.41, "avg_roi_lt": 0.3, "avg_gp90": 9588, "bd_churn": 0, "avg_be": null, "be_n": 0, "stars": 0, "pip_bd": 2, "solid_bd": 0, "avg_cov": 3.7, "avg_churn_md": 9.4, "avg_bob_per": 41789, "avg_accounts": 10.0, "avg_md_roi": 3.8, "avg_hv": 1.0, "avg_ggr": 28.5, "hi_md": 0, "pip_md": 0, "md_matched": 1, "bd_cost": 195018, "md_cost": 111552, "ftes": 3, "vfm_k": 533, "bd_md_r": 2.0, "bd_rec": "REVIEW", "bd_rc": "#dc2626", "bd_rb": "#fef2f2", "md_rec": "MAINTAIN", "md_rc": "#2563eb", "md_rb": "#eff6ff", "md_reason": "Healthy churn and growth. Steady state.", "total_score": 51, "rev_freshness": 1.2, "total_bd_gp90": 19177, "avg_bob_per_rep": 417892, "avg_acc_per_rep": 10.0, "avg_hv_per_rep": 1.0, "bob_per_live_acc": 41789, "avg_md_churn": 9.4, "churn_flag": "healthy"}}, "intl_avg": {"bd_roi": 2.06, "bd_gp90": 33578, "bd_be": 10.0, "bd_churn": 11.1, "md_cov": 17.3, "md_churn": 19.2, "md_bob": 1027048, "md_acc": 21.7, "md_hv": 2.5, "md_ggr": 13.4}};
+const BD=D.bd, MD=D.md, C=D.countries, AVG=D.intl_avg;
+const CODES=Object.keys(C);
+const CNAMES={ES:'Spain',DE:'Germany',FR:'France',UK:'UK',AU:'Australia',PL:'Poland',UAE:'UAE',IE:'Ireland',BENL:'Belgium/NL'};
+const fm=v=>'$'+Math.round(v).toLocaleString();
+const fk=v=>'$'+Math.round(v/1000)+'K';
+const fp=(v)=>(v>0?'+':'')+v+'%';
+
+function nav(id){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sb nav a').forEach(a=>a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('n-'+id).classList.add('active');
+  const fn={s0:initS0,s1:initS1,s2:initS2,s3:initS3,s4:initS4,s5:initS5};
+  if(fn[id]&&!window['_i'+id]){fn[id]();window['_i'+id]=1;}
+}
+
+function heroKPIs(){
+  const avgR=(BD.reduce((a,r)=>a+r.roi,0)/BD.length).toFixed(2);
+  const stars=BD.filter(r=>r.quadrant==='Star').length;
+  const pip=BD.filter(r=>['PIP / Exit','Critical'].includes(r.quadrant)).length;
+  const hire=CODES.filter(c=>C[c].bd_rec==='HIRE').length;
+  const mhire=CODES.filter(c=>C[c].md_rec==='HIRE MD').length;
+  const avgFresh=(CODES.reduce((a,c)=>a+(C[c].rev_freshness||0),0)/CODES.length).toFixed(1);
+  [
+    {l:'Avg BD Annual ROI',v:avgR+'x',d:'GP365/cost',dc:'d-neu'},
+    {l:'⭐ Stars (≥2.5x)',v:stars,d:'Keep & grow',dc:'d-pos'},
+    {l:'🔴 PIP+Critical',v:pip,d:'ROI < 1.5x',dc:'d-neg'},
+    {l:'BD HIRE Signals',v:hire+' mkts',d:'All 3 conditions met',dc:'d-pos'},
+    {l:'MD HIRE Signals',v:mhire+' mkts',d:'Understaffed signal',dc:'d-pos'},
+    {l:'Avg Rev. Freshness',v:avgFresh+'%',d:'BD GP90 / M1 VFM',dc:'d-neu'},
+  ].forEach(k=>document.getElementById('hero-kpis').innerHTML+=`<div class="hero-kpi"><div class="hk-label">${k.l}</div><div class="hk-val">${k.v}</div><div class="hk-delta ${k.dc}">${k.d}</div></div>`);
+}
+
+// ── S0: DETAILED COUNTRY SCORECARDS ──────────────────────────────
+function initS0(){
+  // INTL strip
+  document.getElementById('intl-strip').innerHTML=`
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.6;padding:4px 12px;align-self:center;white-space:nowrap;">INTL AVG →</div>
+    ${[
+      {l:'BD ROI',v:AVG.bd_roi+'x'},{l:'GP90/rep',v:'$'+Math.round(AVG.bd_gp90/1000)+'K'},
+      {l:'BD Churn',v:AVG.bd_churn+'%'},{l:'Breakeven',v:(AVG.bd_be||'—')+'mo'},
+      {l:'MD BoB/rep',v:'$'+Math.round(AVG.md_bob/1000)+'K'},{l:'MD Accts/rep',v:AVG.md_acc},
+      {l:'MD Churn',v:AVG.md_churn+'%'},{l:'MD GP Growth',v:fp(AVG.md_ggr)},
+    ].map(s=>`<div class="intl-stat"><div class="intl-stat-label">${s.l}</div><div class="intl-stat-val">${s.v}</div></div>`).join('')}`;
+
+  // Overview charts
+  const L=CODES.map(c=>C[c].name);
+  new Chart(document.getElementById('c-s0-main'),{
+    type:'bar',data:{labels:L,datasets:[
+      {label:'M1 VFM ($M)',data:CODES.map(c=>C[c].vfm),backgroundColor:'#3d7a1244',borderColor:'#53a318',borderWidth:2,borderRadius:4,yAxisID:'y'},
+      {label:'BD ROI',data:CODES.map(c=>C[c].avg_roi),type:'line',borderColor:'#2563eb',borderWidth:2.5,tension:.3,pointRadius:4,yAxisID:'y2'},
+      {label:'Acct Churn %',data:CODES.map(c=>C[c].bd_churn||0),type:'line',borderColor:'#dc2626',borderDash:[4,3],borderWidth:2,tension:.3,pointRadius:3,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}},y2:{position:'right',grid:{display:false}}}}
+  });
+  new Chart(document.getElementById('c-s0-fresh'),{
+    type:'bar',data:{labels:L,datasets:[{
+      label:'Revenue Freshness % (BD GP90/VFM)',
+      data:CODES.map(c=>C[c].rev_freshness||0),
+      backgroundColor:CODES.map(c=>(C[c].rev_freshness||0)>10?'#53a31888':(C[c].rev_freshness||0)>5?'#2563eb88':'#f59e0b88'),
+      borderColor:CODES.map(c=>(C[c].rev_freshness||0)>10?'#53a318':(C[c].rev_freshness||0)>5?'#2563eb':'#f59e0b'),
+      borderWidth:2,borderRadius:4,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10}}}}}
+  });
+
+  // Detailed country cards
+  const grid=document.getElementById('ctry-detail-grid');
+  CODES.forEach(code=>{
+    const c=C[code];
+    const ind=(val,avg,higherIsBetter,tolerancePct=10)=>{
+      const pct=(val-avg)/Math.max(Math.abs(avg),1)*100;
+      const better = higherIsBetter ? pct >= -tolerancePct : pct <= tolerancePct;
+      if(better && Math.abs(pct)>tolerancePct) return {cls:'mi-green',sym:'↑'};
+      if(!better && Math.abs(pct)>tolerancePct) return {cls:'mi-red',sym:'↓'};
+      return {cls:'mi-yellow',sym:'~'};
+    };
+    const roiI  = ind(c.avg_roi,AVG.bd_roi,true);
+    const gp90I = ind(c.avg_gp90||0,AVG.bd_gp90,true);
+    const chI   = ind(c.bd_churn||0,AVG.bd_churn,false);
+    const frI   = ind(c.rev_freshness||0,6,true,25); // freshness: above 6% = active hunting
+    const beI   = c.avg_be ? ind(c.avg_be,AVG.bd_be||10,false) : {cls:'mi-gray',sym:'—'};
+    const covI  = c.md>0 ? ind(c.avg_cov||0,AVG.md_cov,true) : {cls:'mi-gray',sym:'—'};
+    const mdGrI = c.md>0 ? ind(c.avg_ggr||0,AVG.md_ggr,true)  : {cls:'mi-gray',sym:'—'};
+    const mdChI = c.md>0 ? ind(c.avg_md_churn||0,AVG.md_churn,false) : {cls:'mi-gray',sym:'—'};
+    const bobI  = c.md>0 ? ind(c.avg_bob_per_rep||0,AVG.md_bob,true) : {cls:'mi-gray',sym:'—'};
+    const accI  = c.md>0 ? ind(c.avg_acc_per_rep||0,AVG.md_acc,true) : {cls:'mi-gray',sym:'—'};
+
+    // Commentary per metric
+    const roiC  = c.avg_roi>AVG.bd_roi ? `Above INTL avg (${AVG.bd_roi}x) — strong BD productivity` : `Below INTL avg (${AVG.bd_roi}x) — BD output needs improvement`;
+    const chC   = (c.bd_churn||0)<AVG.bd_churn ? `Below INTL avg churn (${AVG.bd_churn}%) — good account retention signal` : `Above INTL avg (${AVG.bd_churn}%) — review BD account quality & MD handoff`;
+    const frC   = (c.rev_freshness||0)>10 ? `Hunter-led market (${c.rev_freshness}%) — dependent on BD opening new accounts` : (c.rev_freshness||0)<4 ? `Farming-led market — very low BD contribution to VFM, MD base dominant` : `Balanced BD/MD contribution`;
+    const beC   = c.avg_be ? (c.avg_be < (AVG.bd_be||10) ? `Faster breakeven than INTL avg — good new joiner ramp` : `Slower breakeven — review onboarding & early account assignment`) : `Fewer than 3 new joiners in last 3 years — breakeven not applicable`;
+    const covC  = c.md>0 ? (c.avg_cov>AVG.md_cov ? `High BoB coverage — MDs managing large revenue per $ of cost` : `Below avg coverage — review BoB allocation or cost vs BoB balance`) : `No MD reps in this market`;
+    const mdGrC = c.md>0 ? (c.avg_ggr>0 ? `Positive GP growth — MDs growing existing accounts` : `Negative growth — account base contracting, investigate churn drivers`) : '';
+    const mdChC = c.md>0 ? ((c.avg_md_churn||0)<AVG.md_churn ? `MD churn below INTL avg — healthy account retention` : `MD churn above INTL avg (${AVG.md_churn}%) — capacity or performance signal`) : '';
+    const capFlag = c.churn_flag==='capacity' ? '⚠️ Capacity issue: high BoB/rep + high churn → add MD headcount' : c.churn_flag==='performance' ? '⚠️ Performance issue: low BoB/rep + high churn → coaching/PIP first' : c.churn_flag==='healthy' ? '✅ Healthy: churn in normal range given BoB load' : '';
+
+    const sc=c.total_score||0;
+    const scColor=sc>70?'#53a318':sc>50?'#2563eb':sc>35?'#f59e0b':'#dc2626';
+
+    // Score breakdown
+    const roiS=Math.round(Math.min(30,c.avg_roi*12));
+    const grS=Math.round(Math.min(25,Math.max(0,(c.yoy+0.2)/0.6*25)));
+    const chS=Math.round(Math.min(20,Math.max(0,(20-(c.bd_churn||0))/20*20)));
+    const vfmS=Math.round(Math.min(15,(c.vfm_k||0)/12));
+    const beS=c.avg_be && c.be_n>=3 ? Math.round(Math.min(10,Math.max(0,(15-c.avg_be)/10*10))) : 0;
+
+    grid.innerHTML+=`<div class="ctry-card">
+      <div class="ctry-card-head">
+        <div class="ctry-title-row">
+          <div>
+            <div class="ctry-name">${c.name}</div>
+            <div class="ctry-vfm">M1 VFM <b>$${c.vfm}M</b> &nbsp;
+              <span style="color:${c.yoy>0?'#53a318':'#dc2626'};font-weight:700;">${c.yoy>0?'↑':'↓'}${Math.abs((c.yoy*100).toFixed(1))}% YoY</span>
+              &nbsp;·&nbsp; Score <b style="color:${scColor}">${sc}/100</b>
+            </div>
+            <div class="score-breakdown">
+              <div class="score-comp">ROI <b style="color:${scColor}">${roiS}</b>/30</div>
+              <div class="score-comp">Growth <b style="color:${scColor}">${grS}</b>/25</div>
+              <div class="score-comp">Churn <b style="color:${scColor}">${chS}</b>/20</div>
+              <div class="score-comp">VFM/FTE <b style="color:${scColor}">${vfmS}</b>/15</div>
+              <div class="score-comp">BE <b style="color:${scColor}">${beS}</b>/10</div>
+            </div>
+          </div>
+          <div>
+            <div class="rec-badge" style="background:${c.bd_rb};color:${c.bd_rc};display:block;margin-bottom:3px;">BD: ${c.bd_rec}</div>
+            ${c.md>0?`<div class="rec-badge" style="background:${c.md_rb};color:${c.md_rc};display:block;">MD: ${c.md_rec}</div>`:''}
+          </div>
+        </div>
+        <div class="ctry-score-bar" style="margin-top:7px;"><div class="ctry-score-fill" style="width:${sc}%;background:${scColor}"></div></div>
+      </div>
+
+      <div class="ctry-body">
+        <!-- BD Metrics -->
+        <div class="metric-group">
+          <div class="metric-group-title">🎯 BD Performance (${c.bd} reps)</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${roiI.cls}">${roiI.sym}</div>
+            <div class="metric-label">Avg Annual ROI</div>
+            <div class="metric-value" style="color:${c.avg_roi>=2.5?'#53a318':c.avg_roi>=1.5?'#2563eb':'#dc2626'}">${c.avg_roi}x <span class="metric-avg">vs ${AVG.bd_roi}x avg</span></div>
+          </div>
+          <div class="metric-comment">${roiC}</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${chI.cls}">${chI.sym}</div>
+            <div class="metric-label">Account Churn (Oct→Jan)</div>
+            <div class="metric-value" style="color:${(c.bd_churn||0)>15?'#dc2626':(c.bd_churn||0)>10?'#f59e0b':'#53a318'}">${c.bd_churn||0}% <span class="metric-avg">vs ${AVG.bd_churn}% avg</span></div>
+          </div>
+          <div class="metric-comment">${chC}</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${frI.cls}">${frI.sym}</div>
+            <div class="metric-label">Revenue Freshness</div>
+            <div class="metric-value">${c.rev_freshness||0}% <span class="metric-avg">INTL avg ~6%</span></div>
+          </div>
+          <div class="metric-comment">${frC}</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${beI.cls}">${beI.sym}</div>
+            <div class="metric-label">Breakeven (new joiners)</div>
+            <div class="metric-value">${c.avg_be?c.avg_be+'mo':'n/a'} <span class="metric-avg">n=${c.be_n} reps${c.be_n<3?' ⚠':''}${AVG.bd_be?' · avg '+AVG.bd_be+'mo':''}</span></div>
+          </div>
+          <div class="metric-comment">${beC}</div>
+        </div>
+
+        <!-- MD Metrics -->
+        ${c.md>0?`
+        <div class="metric-group">
+          <div class="metric-group-title">🌾 MD Capacity (${c.md} reps)</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${covI.cls}">${covI.sym}</div>
+            <div class="metric-label">BoB/Cost Coverage</div>
+            <div class="metric-value" style="color:${(c.avg_cov||0)>=15?'#53a318':(c.avg_cov||0)>=8?'#2563eb':'#dc2626'}">${c.avg_cov||0}x <span class="metric-avg">vs ${AVG.md_cov}x avg</span></div>
+          </div>
+          <div class="metric-comment">${covC}</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${mdGrI.cls}">${mdGrI.sym}</div>
+            <div class="metric-label">GP Growth YoY</div>
+            <div class="metric-value" style="color:${(c.avg_ggr||0)>0?'#53a318':'#dc2626'}">${fp(c.avg_ggr||0)} <span class="metric-avg">vs ${fp(AVG.md_ggr)} avg</span></div>
+          </div>
+          <div class="metric-comment">${mdGrC}</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${mdChI.cls}">${mdChI.sym}</div>
+            <div class="metric-label">MD Account Churn</div>
+            <div class="metric-value" style="color:${(c.avg_md_churn||0)>AVG.md_churn?'#dc2626':'#53a318'}">${c.avg_md_churn||0}% <span class="metric-avg">vs ${AVG.md_churn}% avg</span></div>
+          </div>
+          <div class="metric-comment">${mdChC}</div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${bobI.cls}">${bobI.sym}</div>
+            <div class="metric-label">BoB per Rep</div>
+            <div class="metric-value">${fk(c.avg_bob_per_rep||0)} <span class="metric-avg">vs ${fk(AVG.md_bob)} avg</span></div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-indicator ${accI.cls}">${accI.sym}</div>
+            <div class="metric-label">Live Accounts / Rep</div>
+            <div class="metric-value">${c.avg_acc_per_rep||0} <span class="metric-avg">vs ${AVG.md_acc} avg</span></div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-indicator mi-gray">→</div>
+            <div class="metric-label">BoB / Live Account</div>
+            <div class="metric-value">${fm(c.bob_per_live_acc||0)}</div>
+          </div>
+        </div>
+        <div class="corr-panel">
+          <div class="corr-title">Churn–Capacity Correlation</div>
+          <div class="corr-row"><span class="corr-arrow">${c.churn_flag==='capacity'?'⚠️':c.churn_flag==='performance'?'🔴':'✅'}</span><span>${capFlag}</span></div>
+          <div class="corr-row" style="margin-top:3px;font-size:9px;color:var(--g500);">BoB/rep ${(c.avg_bob_per_rep||0)>AVG.md_bob?'above':'below'} INTL median ($${Math.round(AVG.md_bob/1000)}K) · churn ${(c.avg_md_churn||0)>AVG.md_churn?'above':'below'} INTL median (${AVG.md_churn}%)</div>
+        </div>
+        `:'<div style="font-size:10px;color:var(--g400);font-style:italic;padding:8px 0;">No MD reps in this market</div>'}
+      </div>
+    </div>`;
+  });
+}
+
+// ── S1: BD Performance ─────────────────────────────────────────────
+function initS1(){
+  const sel=document.getElementById('bd-f-ctry');
+  CODES.forEach(c=>sel.innerHTML+=`<option value="${c}">${C[c].name}</option>`);
+  const stars=BD.filter(r=>r.quadrant==='Star').length,solid=BD.filter(r=>r.quadrant==='Solid').length,
+        pip=BD.filter(r=>r.quadrant==='PIP / Exit').length,crit=BD.filter(r=>r.quadrant==='Critical').length;
+  document.getElementById('bd-kpis').innerHTML=[
+    {l:'⭐ Star ≥2.5x',v:stars,s:'Keep & grow'},
+    {l:'🔵 Solid 1.5–2.5x',v:solid,s:'Develop'},
+    {l:'🔴 PIP 0.8–1.5x',v:pip,s:'Replace queue'},
+    {l:'🟣 Critical <0.8x',v:crit,s:'Immediate'},
+  ].map(k=>`<div class="card" style="padding:11px;"><div style="font-size:9px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.4px;">${k.l}</div>
+    <div style="font-size:20px;font-weight:800;margin:3px 0 1px;">${k.v}</div>
+    <div style="font-size:9.5px;color:var(--g500);">${k.s}</div></div>`).join('');
+
+  const qC={Star:'#53a318',Solid:'#2563eb','PIP / Exit':'#dc2626',Critical:'#7c3aed'};
+  new Chart(document.getElementById('c-quad'),{type:'scatter',
+    data:{datasets:Object.keys(qC).map(q=>({label:q,
+      data:BD.filter(r=>r.quadrant===q).map(r=>({x:r.cost/1000,y:r.roi,name:r.name,ctry:r.ctry})),
+      backgroundColor:qC[q]+'99',borderColor:qC[q],pointRadius:5,pointHoverRadius:7,borderWidth:1.5}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw.name} (${ctx.raw.ctry}): ${ctx.raw.y.toFixed(2)}x | $${ctx.raw.x.toFixed(0)}K`}}},
+      scales:{x:{title:{display:true,text:'Ann. Cost ($K)',font:{size:10}},grid:{color:'#f3f4f6'},ticks:{font:{size:10}}},
+        y:{title:{display:true,text:'Annual ROI',font:{size:10}},grid:{color:'#f3f4f6'},ticks:{font:{size:10}},min:0,suggestedMax:8}}}
+  });
+  const qDefs=[
+    {k:'Star',label:'⭐ Star ≥2.5x',bg:'#e8f5d9',border:'#86efac',txt:'#166534'},
+    {k:'Solid',label:'🔵 Solid 1.5–2.5x',bg:'#eff6ff',border:'#93c5fd',txt:'#1e40af'},
+    {k:'PIP / Exit',label:'🔴 PIP 0.8–1.5x',bg:'#fef2f2',border:'#fca5a5',txt:'#991b1b'},
+    {k:'Critical',label:'🟣 Critical <0.8x',bg:'#ede9fe',border:'#c4b5fd',txt:'#5b21b6'},
+  ];
+  document.getElementById('quad-mat').innerHTML=qDefs.map(q=>{
+    const reps=BD.filter(r=>r.quadrant===q.k);
+    return `<div class="qm-cell" style="background:${q.bg};border-color:${q.border};">
+      <div class="qm-title" style="color:${q.txt}">${q.label} (${reps.length})</div>
+      <div class="qm-list">${reps.slice(0,7).map(r=>`<div class="qm-rep">${r.name.split(' ').slice(-1)[0]}, ${r.ctry} — ${r.roi.toFixed(1)}x</div>`).join('')}${reps.length>7?`<div class="qm-rep" style="opacity:.6;font-style:italic">+${reps.length-7} more</div>`:''}</div>
+    </div>`;
+  }).join('');
+
+  const beR=BD.filter(r=>r.be_applicable&&r.be_months!==null);
+  const bins=[0,3,6,9,12,15,18,24];
+  const bC=new Array(bins.length-1).fill(0);
+  beR.forEach(r=>{for(let i=0;i<bins.length-1;i++){if(r.be_months>=bins[i]&&r.be_months<bins[i+1]){bC[i]++;break;}}});
+  new Chart(document.getElementById('c-be'),{type:'bar',
+    data:{labels:bins.slice(0,-1).map((b,i)=>`${b}–${bins[i+1]}mo`),
+      datasets:[{label:'# Reps',data:bC,backgroundColor:bins.slice(0,-1).map(b=>b<9?'#53a31899':b<13?'#f59e0b99':'#dc262699'),borderColor:bins.slice(0,-1).map(b=>b<9?'#53a318':b<13?'#f59e0b':'#dc2626'),borderWidth:2,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}
+  });
+  new Chart(document.getElementById('c-bd-ctry'),{type:'bar',
+    data:{labels:CODES.map(c=>C[c].name),datasets:[
+      {label:'Avg ROI',data:CODES.map(c=>C[c].avg_roi),backgroundColor:'#2563eb88',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4,yAxisID:'y'},
+      {label:'Avg GP90 ($K)',data:CODES.map(c=>Math.round((C[c].avg_gp90||0)/1000)),type:'line',borderColor:'#53a318',borderWidth:2.5,tension:.3,pointRadius:4,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}},y2:{position:'right',grid:{display:false}}}}
+  });
+  renderBD();
+}
+function renderBD(){
+  const fc=document.getElementById('bd-f-ctry').value,fq=document.getElementById('bd-f-quad').value,fs=document.getElementById('bd-f-src').value;
+  let rows=BD.filter(r=>(fc==='ALL'||r.ctry===fc)&&(fq==='ALL'||r.quadrant===fq)&&(fs==='ALL'||r.src===fs));
+  rows=[...rows].sort((a,b)=>b.roi-a.roi);
+  const qCl={Star:'bg',Solid:'bb','PIP / Exit':'br',Critical:'bp'};
+  const aCl={'Keep & Grow':'bg','Develop':'bb','PIP → Replace':'br','Immediate Exit':'bp'};
+  document.getElementById('bd-tbody').innerHTML=rows.map(r=>`<tr>
+    <td><b>${r.name}</b></td><td>${CNAMES[r.ctry]||r.ctry}</td>
+    <td class="r">${fk(r.cost)}</td><td class="r">${fm(r.gp90)}</td><td class="r">${fm(r.gp_ann)}</td>
+    <td class="r" style="font-weight:700;color:${r.roi>=2.5?'#53a318':r.roi>=1.5?'#2563eb':r.roi>=0.8?'#f59e0b':'#dc2626'}">${r.roi.toFixed(2)}x</td>
+    <td class="r" style="font-weight:600;color:${r.roi_lifetime>=3?'#53a318':'#f59e0b'}">${r.roi_lifetime.toFixed(2)}x</td>
+    <td class="r">${r.be_applicable&&r.be_months?r.be_months+'mo':'—'}</td>
+    <td class="r" style="color:${r.ctry_acct_churn>15?'#dc2626':r.ctry_acct_churn>10?'#f59e0b':'#53a318'}">${r.ctry_acct_churn}%</td>
+    <td><span class="badge ${qCl[r.quadrant]||'bb'}">${r.quadrant}</span></td>
+    <td><span class="badge ${aCl[r.action]||'bb'}">${r.action}</span></td>
+    <td><span class="src-dot ${r.src==='actual'?'src-actual':'src-est'}"></span></td>
+  </tr>`).join('');
+}
+
+// ── S2: BD DECISIONS ──────────────────────────────────────────────
+function initS2(){
+  document.getElementById('bd-fw').innerHTML=[
+    {i:'🟢',c:'#53a318',bg:'#e8f5d9',t:'HIRE — Open headcount',d:'ROI > INTL median AND churn ≤ median AND breakeven < median (where applicable)',b:'OPEN HC'},
+    {i:'🔵',c:'#2563eb',bg:'#eff6ff',t:'MAINTAIN — Replace only',d:'Above-median ROI but churn or breakeven condition borderline. Replace leavers like-for-like.',b:'REPLACE'},
+    {i:'🟡',c:'#f59e0b',bg:'#fffbeb',t:'WATCH — Develop team',d:'Below-median ROI, positive market. No expansion. Coach Solid tier towards Star.',b:'DEVELOP'},
+    {i:'🔴',c:'#dc2626',bg:'#fef2f2',t:'REVIEW — Freeze & PIP',d:'ROI < 1.0x or churn > 25%. PIP Critical/PIP tier. Freeze all new headcount.',b:'FREEZE'},
+  ].map(s=>`<div class="signal" style="background:${s.bg};border-color:${s.c}30;margin-bottom:5px;">
+    <div class="sig-icon">${s.i}</div><div class="sig-body"><div class="sig-title" style="color:${s.c}">${s.t}</div><div class="sig-desc">${s.d}</div></div>
+    <div class="sig-btn" style="background:${s.c}">${s.b}</div></div>`).join('');
+
+  const sorted=[...CODES].sort((a,b)=>(C[b].total_score||0)-(C[a].total_score||0));
+  document.getElementById('bd-readiness').innerHTML=sorted.map(code=>{
+    const c=C[code],sc=c.total_score||0;
+    const col=sc>70?'#53a318':sc>50?'#2563eb':sc>35?'#f59e0b':'#dc2626';
+    return `<div class="score-row"><div class="score-name">${c.name}</div>
+      <div class="score-track"><div class="score-fill" style="width:${sc}%;background:${col}"></div></div>
+      <div class="score-val" style="color:${col}">${sc}</div>
+      <div class="score-rec"><span class="badge" style="background:${c.bd_rb};color:${c.bd_rc};font-size:8px;">${c.bd_rec}</span></div>
+    </div>`;
+  }).join('');
+
+  new Chart(document.getElementById('c-bd-bubble'),{type:'bubble',
+    data:{datasets:CODES.map(code=>({label:C[code].name,
+      data:[{x:C[code].bd_churn||0,y:C[code].avg_roi,r:Math.max(6,C[code].bd*0.7),code}],
+      backgroundColor:C[code].bd_rc+'88',borderColor:C[code].bd_rc,borderWidth:2}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}},tooltip:{callbacks:{label:ctx=>{const c=C[ctx.raw.code];return `${c.name}: Churn ${c.bd_churn||0}% | ROI ${c.avg_roi}x`;}}}},
+      scales:{x:{title:{display:true,text:'Acct Churn %',font:{size:10}},grid:{color:'#f3f4f6'}},y:{title:{display:true,text:'Avg Annual ROI',font:{size:10}},grid:{color:'#f3f4f6'}}}}
+  });
+  new Chart(document.getElementById('c-bd-pip'),{type:'bar',
+    data:{labels:CODES.map(c=>C[c].name),datasets:[
+      {label:'⭐ Stars',data:CODES.map(c=>C[c].stars),backgroundColor:'#53a31888',borderColor:'#53a318',borderWidth:1.5,borderRadius:4},
+      {label:'🔴 PIP+Crit.',data:CODES.map(c=>C[c].pip_bd),backgroundColor:'#dc262688',borderColor:'#dc2626',borderWidth:1.5,borderRadius:4},
+      {label:'🔵 Solid',data:CODES.map(c=>C[c].solid_bd||0),backgroundColor:'#2563eb88',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}
+  });
+
+  const bdMsg={HIRE:'ROI and churn conditions met. Open 2–3 BD positions. Replicate Star rep profile.',MAINTAIN:'Strong ROI but one condition borderline. Replace leavers only.',WATCH:'Below-median ROI. No expansion. Develop Solid tier.',REVIEW:'Critical ROI. PIP underperformers. Freeze hiring.'};
+  document.getElementById('bd-rec-cards').innerHTML=CODES.map(code=>{
+    const c=C[code];
+    const emoji={HIRE:'🟢',MAINTAIN:'🔵',WATCH:'🟡',REVIEW:'🔴'}[c.bd_rec]||'⚪';
+    const be=c.avg_be?`${c.avg_be}mo (n=${c.be_n})`:`n/a (${c.be_n}<3)`;
+    return `<div style="background:${c.bd_rb};border:1.5px solid ${c.bd_rc}30;border-radius:10px;padding:13px;">
+      <div style="font-size:11.5px;font-weight:800;color:${c.bd_rc};margin-bottom:8px;">${emoji} ${c.name} — BD ${c.bd_rec}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px;">
+        <div style="background:white;border-radius:5px;padding:5px;text-align:center;"><div style="font-size:14px;font-weight:800;color:${c.avg_roi>=2.5?'#53a318':c.avg_roi>=1.5?'#2563eb':'#dc2626'}">${c.avg_roi}x</div><div style="font-size:7.5px;color:var(--g500);font-weight:700;text-transform:uppercase;">ROI</div></div>
+        <div style="background:white;border-radius:5px;padding:5px;text-align:center;"><div style="font-size:14px;font-weight:800;color:${(c.bd_churn||0)>15?'#dc2626':(c.bd_churn||0)>10?'#f59e0b':'#53a318'}">${c.bd_churn||0}%</div><div style="font-size:7.5px;color:var(--g500);font-weight:700;text-transform:uppercase;">Churn</div></div>
+        <div style="background:white;border-radius:5px;padding:5px;text-align:center;"><div style="font-size:14px;font-weight:800;color:var(--purple)">${c.bd}</div><div style="font-size:7.5px;color:var(--g500);font-weight:700;text-transform:uppercase;">BD Reps</div></div>
+      </div>
+      <div style="font-size:10px;color:var(--g700);line-height:1.5;margin-bottom:5px;">${bdMsg[c.bd_rec]||''}</div>
+      <div style="display:flex;gap:7px;font-size:9px;color:var(--g500);">
+        <span>⭐${c.stars} stars</span><span>🔴${c.pip_bd} PIP</span><span>BE:${be}</span><span>Fresh:${c.rev_freshness||0}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── S3: MD Performance ────────────────────────────────────────────
+function initS3(){
+  const sel=document.getElementById('md-f-ctry');
+  CODES.filter(c=>C[c].md>0).forEach(c=>sel.innerHTML+=`<option value="${c}">${C[c].name}</option>`);
+  const avgCov=(MD.reduce((a,r)=>a+r.coverage_ratio,0)/MD.length).toFixed(1);
+  const avgBob=Math.round(MD.reduce((a,r)=>a+r.bob,0)/MD.length);
+  const hipct=Math.round(MD.filter(r=>r.perf==='High Performer').length/MD.length*100);
+  const avgAcc=(MD.reduce((a,r)=>a+r.accounts,0)/MD.length).toFixed(1);
+  document.getElementById('md-kpis').innerHTML=[
+    {l:'📚 Avg BoB/Cost',v:avgCov+'x',s:'Coverage ratio'},
+    {l:'⭐ High Performers',v:hipct+'%',s:'of MD pool'},
+    {l:'💰 Avg BoB/Rep',v:fk(avgBob),s:'GP365 managed'},
+    {l:'👤 Avg Live Accts/Rep',v:avgAcc,s:'Active accounts'},
+  ].map(k=>`<div class="card" style="padding:11px;"><div style="font-size:9px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.4px;">${k.l}</div>
+    <div style="font-size:20px;font-weight:800;margin:3px 0 1px;">${k.v}</div>
+    <div style="font-size:9.5px;color:var(--g500);">${k.s}</div></div>`).join('');
+
+  const mdC=CODES.filter(c=>C[c].md>0);
+  const avgCovBy=mdC.map(c=>{const r=MD.filter(x=>x.ctry===c);return r.length?(r.reduce((a,x)=>a+x.coverage_ratio,0)/r.length).toFixed(1):0;});
+  new Chart(document.getElementById('c-md-cov'),{type:'bar',
+    data:{labels:mdC.map(c=>C[c].name),datasets:[{label:'BoB/Cost',data:avgCovBy,
+      backgroundColor:avgCovBy.map(v=>v>=15?'#53a31888':v>=8?'#2563eb88':'#dc262688'),
+      borderColor:avgCovBy.map(v=>v>=15?'#53a318':v>=8?'#2563eb':'#dc2626'),borderWidth:2,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}
+  });
+  new Chart(document.getElementById('c-md-health'),{type:'bar',
+    data:{labels:mdC.map(c=>C[c].name),datasets:[
+      {label:'GP Growth %',data:mdC.map(c=>C[c].avg_ggr||0),backgroundColor:'#53a31866',borderColor:'#53a318',borderWidth:1.5,borderRadius:4},
+      {label:'Churn % (lower=better)',data:mdC.map(c=>C[c].avg_md_churn||0),backgroundColor:'#dc262666',borderColor:'#dc2626',borderWidth:1.5,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}
+  });
+  renderMD();
+}
+function renderMD(){
+  const fc=document.getElementById('md-f-ctry').value,fp2=document.getElementById('md-f-perf').value;
+  let rows=MD.filter(r=>(fc==='ALL'||r.ctry===fc)&&(fp2==='ALL'||r.perf===fp2));
+  rows=[...rows].sort((a,b)=>b.md_roi-a.md_roi);
+  const pC={'High Performer':'bg',Solid:'bb','At Risk':'by',Underperformer:'br'};
+  const aC={'Increase BoB':'bg',Maintain:'bb',Develop:'by','PIP / Exit':'br'};
+  document.getElementById('md-tbody').innerHTML=rows.map(r=>`<tr>
+    <td><b>${r.name}</b></td><td>${CNAMES[r.ctry]||r.ctry}</td>
+    <td class="r">${fk(r.cost)}</td><td class="r">${fm(r.gp90)}</td><td class="r">${fm(r.bob)}</td>
+    <td class="r" style="font-weight:700;color:${r.coverage_ratio>=15?'#53a318':r.coverage_ratio>=8?'#2563eb':'#dc2626'}">${r.coverage_ratio}x</td>
+    <td class="r">${r.accounts}</td><td class="r">${r.high_val}</td>
+    <td class="r">${fm(r.bob_per_acc)}</td>
+    <td class="r" style="color:${r.gp_growth>0?'#53a318':'#dc2626'}">${r.gp_growth>0?'+':''}${r.gp_growth}%</td>
+    <td class="r" style="color:${r.churn<8?'#53a318':r.churn<15?'#f59e0b':'#dc2626'}">${r.churn}%</td>
+    <td class="r">${r.md_roi}x</td>
+    <td><span class="badge ${pC[r.perf]||'bb'}">${r.perf}</span></td>
+    <td><span class="badge ${aC[r.action]||'bb'}">${r.action}</span></td>
+    <td><span class="src-dot ${r.src==='actual'?'src-actual':'src-est'}"></span></td>
+  </tr>`).join('');
+}
+
+// ── S4: MD CAPACITY ──────────────────────────────────────────────
+function initS4(){
+  document.getElementById('md-fw').innerHTML=[
+    {i:'🟢',c:'#53a318',bg:'#e8f5d9',t:'HIRE MD — Overloaded signal',d:'BoB/rep > median AND live accounts/rep > median AND churn > median → capacity stretched',b:'ADD CAPACITY'},
+    {i:'🔵',c:'#2563eb',bg:'#eff6ff',t:'MAINTAIN — Healthy state',d:'Churn ≤ median and growth ≥ median. BoB/rep within range. Monitor quarterly.',b:'MONITOR'},
+    {i:'🟡',c:'#f59e0b',bg:'#fffbeb',t:'DEVELOP — One metric off',d:'Churn elevated but BoB/rep below median, or growth below median alone. Coach first.',b:'COACH'},
+    {i:'🔴',c:'#dc2626',bg:'#fef2f2',t:'REVIEW MD — Performance issue',d:'High churn AND low BoB/rep AND low growth → not capacity, performance problem. PIP.',b:'PIP FIRST'},
+  ].map(s=>`<div class="signal" style="background:${s.bg};border-color:${s.c}30;margin-bottom:5px;">
+    <div class="sig-icon">${s.i}</div><div class="sig-body"><div class="sig-title" style="color:${s.c}">${s.t}</div><div class="sig-desc">${s.d}</div></div>
+    <div class="sig-btn" style="background:${s.c}">${s.b}</div></div>`).join('');
+
+  const mdC=CODES.filter(c=>C[c].md>0);
+  const sorted=[...mdC].sort((a,b)=>{
+    const sc=code=>Math.min(35,(C[code].avg_cov||0)/20*35)+Math.min(30,Math.max(0,((C[code].avg_ggr||0)+20)/60*30))+Math.min(20,Math.max(0,(20-(C[code].avg_md_churn||0))/17*20))+(C[code].hi_md/(C[code].md||1))*15;
+    return sc(b)-sc(a);
+  });
+  document.getElementById('md-readiness').innerHTML=sorted.map(code=>{
+    const c=C[code];
+    const sc=Math.min(100,Math.round(Math.min(35,(c.avg_cov||0)/20*35)+Math.min(30,Math.max(0,((c.avg_ggr||0)+20)/60*30))+Math.min(20,Math.max(0,(20-(c.avg_md_churn||0))/17*20))+(c.hi_md/(c.md||1))*15));
+    const col=sc>65?'#53a318':sc>45?'#2563eb':sc>30?'#f59e0b':'#dc2626';
+    return `<div class="score-row"><div class="score-name">${c.name}</div>
+      <div class="score-track"><div class="score-fill" style="width:${sc}%;background:${col}"></div></div>
+      <div class="score-val" style="color:${col}">${sc}</div>
+      <div class="score-rec"><span class="badge" style="background:${c.md_rb};color:${c.md_rc};font-size:8px;">${c.md_rec}</span></div>
+    </div>`;
+  }).join('');
+
+  // Bubble: BoB/live account vs churn — capacity diagnostic
+  new Chart(document.getElementById('c-md-bubble'),{type:'bubble',
+    data:{datasets:mdC.map(code=>({label:C[code].name,
+      data:[{x:C[code].avg_md_churn||0,y:C[code].bob_per_live_acc||0,r:Math.max(6,C[code].md*1.2),code}],
+      backgroundColor:C[code].md_rc+'88',borderColor:C[code].md_rc,borderWidth:2}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}},
+        tooltip:{callbacks:{label:ctx=>{const c=C[ctx.raw.code];return `${c.name}: Churn ${c.avg_md_churn||0}% | BoB/Acct $${Math.round(ctx.raw.y/1000)}K | ${c.md} MDs`;}}}},
+      scales:{
+        x:{title:{display:true,text:'MD Acct Churn %',font:{size:10}},grid:{color:'#f3f4f6'}},
+        y:{title:{display:true,text:'BoB per Live Account ($)',font:{size:10}},grid:{color:'#f3f4f6'}}}}
+  });
+
+  // BoB per rep vs live accounts per rep
+  new Chart(document.getElementById('c-md-bob-acc'),{type:'bar',
+    data:{labels:mdC.map(c=>C[c].name),datasets:[
+      {label:'BoB per Rep ($K)',data:mdC.map(c=>Math.round((C[c].avg_bob_per_rep||0)/1000)),backgroundColor:'#7c3aed88',borderColor:'#7c3aed',borderWidth:1.5,borderRadius:4,yAxisID:'y'},
+      {label:'Live Accts/Rep',data:mdC.map(c=>C[c].avg_acc_per_rep||0),type:'line',borderColor:'#f59e0b',borderWidth:2.5,tension:.3,pointRadius:4,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{title:{display:true,text:'BoB ($K)',font:{size:10}},grid:{color:'#f3f4f6'}},y2:{position:'right',title:{display:true,text:'Accts/Rep',font:{size:10}},grid:{display:false}}}}
+  });
+
+  const mdMsg={'HIRE MD':'High BoB/rep + high churn = overloaded. Add MD capacity before churn compounds further.',MAINTAIN:'Metrics healthy. Monitor BoB concentration quarterly.',DEVELOP:'One metric below median. Coach first. Re-evaluate in one quarter.',
+    'REVIEW MD':'Low BoB/rep despite high churn = underperformance. PIP before any MD hiring.'};
+  document.getElementById('md-rec-cards').innerHTML=mdC.map(code=>{
+    const c=C[code];
+    const emoji={'HIRE MD':'🟢',MAINTAIN:'🔵',DEVELOP:'🟡','REVIEW MD':'🔴'}[c.md_rec]||'⚪';
+    return `<div style="background:${c.md_rb};border:1.5px solid ${c.md_rc}30;border-radius:10px;padding:13px;">
+      <div style="font-size:11.5px;font-weight:800;color:${c.md_rc};margin-bottom:8px;">${emoji} ${c.name} — ${c.md_rec}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px;">
+        <div style="background:white;border-radius:5px;padding:5px;text-align:center;"><div style="font-size:14px;font-weight:800;color:#7c3aed">${c.md}</div><div style="font-size:7.5px;color:var(--g500);font-weight:700;text-transform:uppercase;">MDs</div></div>
+        <div style="background:white;border-radius:5px;padding:5px;text-align:center;"><div style="font-size:14px;font-weight:800;color:${(c.avg_ggr||0)>0?'#53a318':'#dc2626'}">${(c.avg_ggr||0)>0?'+':''}${(c.avg_ggr||0).toFixed(1)}%</div><div style="font-size:7.5px;color:var(--g500);font-weight:700;text-transform:uppercase;">GP Growth</div></div>
+        <div style="background:white;border-radius:5px;padding:5px;text-align:center;"><div style="font-size:14px;font-weight:800;color:${(c.avg_md_churn||0)<AVG.md_churn?'#53a318':'#dc2626'}">${(c.avg_md_churn||0).toFixed(1)}%</div><div style="font-size:7.5px;color:var(--g500);font-weight:700;text-transform:uppercase;">MD Churn</div></div>
+      </div>
+      <div style="font-size:10px;color:var(--g700);line-height:1.5;margin-bottom:5px;">${c.md_reason||''}<br>${mdMsg[c.md_rec]||''}</div>
+      <div style="display:flex;gap:7px;font-size:9px;color:var(--g500);">
+        <span>BoB/rep ${fk(c.avg_bob_per_rep||0)}</span>
+        <span>Accts/rep ${c.avg_acc_per_rep||0}</span>
+        <span>BoB/acct ${fk(c.bob_per_live_acc||0)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── S5: ORG STRUCTURE ────────────────────────────────────────────
+function initS5(){
+  const totBD=CODES.reduce((a,c)=>a+C[c].bd,0),totMD=CODES.reduce((a,c)=>a+C[c].md,0);
+  document.getElementById('struct-kpis').innerHTML=[
+    {l:'BD Cost Total',v:'$'+Math.round(CODES.reduce((a,c)=>a+C[c].bd_cost,0)/1e6*10)/10+'M',s:'Ann.'},
+    {l:'MD Cost Total',v:'$'+Math.round(CODES.reduce((a,c)=>a+C[c].md_cost,0)/1e6*10)/10+'M',s:'Ann.'},
+    {l:'Overall BD:MD',v:(totBD/totMD).toFixed(2)+'x',s:'Target 0.8–1.2x'},
+    {l:'Total INTL FTEs',v:totBD+totMD,s:'BD + MD combined'},
+  ].map(k=>`<div class="card" style="padding:11px;"><div style="font-size:9px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.4px;">${k.l}</div>
+    <div style="font-size:20px;font-weight:800;margin:3px 0 1px;">${k.v}</div>
+    <div style="font-size:9.5px;color:var(--g500);">${k.s}</div></div>`).join('');
+  const L=CODES.map(c=>C[c].name);
+  [['c-hc',{type:'bar',data:{labels:L,datasets:[{label:'BD',data:CODES.map(c=>C[c].bd),backgroundColor:'#2563eb88',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4},{label:'MD',data:CODES.map(c=>C[c].md),backgroundColor:'#7c3aed88',borderColor:'#7c3aed',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}}],
+   ['c-cost',{type:'bar',data:{labels:L,datasets:[{label:'BD $K',data:CODES.map(c=>Math.round(C[c].bd_cost/1000)),backgroundColor:'#2563eb88',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4},{label:'MD $K',data:CODES.map(c=>Math.round(C[c].md_cost/1000)),backgroundColor:'#7c3aed88',borderColor:'#7c3aed',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}}],
+   ['c-ratio',{type:'bar',data:{labels:L,datasets:[{label:'BD:MD',data:CODES.map(c=>C[c].bd_md_r),backgroundColor:CODES.map(c=>C[c].bd_md_r>1.5?'#f59e0b88':C[c].bd_md_r<0.7?'#dc262688':'#53a31888'),borderColor:CODES.map(c=>C[c].bd_md_r>1.5?'#f59e0b':C[c].bd_md_r<0.7?'#dc2626':'#53a318'),borderWidth:2,borderRadius:4},{label:'Upper 1.2x',data:CODES.map(()=>1.2),type:'line',borderColor:'#dc262699',borderWidth:1.5,borderDash:[4,4],pointRadius:0,backgroundColor:'transparent'},{label:'Lower 0.8x',data:CODES.map(()=>0.8),type:'line',borderColor:'#2563eb99',borderWidth:1.5,borderDash:[4,4],pointRadius:0,backgroundColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:9}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}}],
+   ['c-vfm',{type:'bar',data:{labels:L,datasets:[{label:'VFM/FTE ($K)',data:CODES.map(c=>C[c].vfm_k||0),backgroundColor:CODES.map(c=>(C[c].vfm_k||0)>300?'#53a31888':(C[c].vfm_k||0)>150?'#2563eb88':'#f59e0b88'),borderColor:CODES.map(c=>(C[c].vfm_k||0)>300?'#53a318':(C[c].vfm_k||0)>150?'#2563eb':'#f59e0b'),borderWidth:2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f3f4f6'}}}}}],
+  ].forEach(([id,cfg])=>new Chart(document.getElementById(id),cfg));
+}
+
+heroKPIs();
+initS0();
+window._is0=1;
+</script>
+</body>
+</html>
